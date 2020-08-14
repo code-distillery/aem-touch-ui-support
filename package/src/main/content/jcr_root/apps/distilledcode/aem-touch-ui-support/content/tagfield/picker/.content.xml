@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright 2020 Code Distillery GmbH
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:granite="http://www.adobe.com/jcr/granite/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+    jcr:primaryType="nt:unstructured"
+    jcr:title="Select Tags"
+    sling:resourceType="granite/ui/components/coral/foundation/picker"
+    rootPath="/etc/tags"
+    selectionCount="${empty param.selectionCount ? &quot;single&quot; : param.selectionCount}"
+    targetCollection="#cq-ui-tagfield-picker-collection">
+    <views jcr:primaryType="nt:unstructured">
+        <column
+                granite:id="cq-ui-tagfield-picker-collection"
+                jcr:primaryType="nt:unstructured"
+                jcr:title="Column View"
+                sling:resourceType="granite/ui/components/coral/foundation/columnview"
+                icon="viewColumn"
+                itemResourceType="cq/gui/components/coral/common/form/tagfield/columnitem"
+                limit="{Long}40"
+                loadAncestors="{Boolean}true"
+                x-previewSrc="/mnt/overlay/distilledcode/aem-touch-ui-support/content/tagfield/picker/columnpreview.html{+id}"
+                path="${empty param.tagId ? &quot;/etc/tags&quot; : param.tagId}"
+                rootPath="/etc/tags"
+                selectionCount="${empty param.selectionCount ? &quot;single&quot; : param.selectionCount}"
+                showRoot="{Boolean}false"
+                size="${empty requestPathInfo.selectors[1] ? &quot;40&quot; : requestPathInfo.selectors[1]}"
+                src="/apps/distilledcode/aem-touch-ui-support/content/tagfield/picker/views/column{.offset,limit}.html${requestPathInfo.suffix}?tagId={+id}">
+            <datasource
+                    jcr:primaryType="nt:unstructured"
+                    sling:resourceType="distilledcode/ui/components/coral/foundation/form/tagfield/datasources/tags"
+                    tagId="${empty param.tagId ? &quot;/etc/tags&quot; : param.tagId}"
+                    limit="${empty requestPathInfo.selectors[1] ? &quot;41&quot; : requestPathInfo.selectors[1] + 1}"
+                    offset="${requestPathInfo.selectors[0]}"
+                    configPath="${param.configPath}"
+                    path="${requestPathInfo.suffix}"/>
+        </column>
+    </views>
+</jcr:root>

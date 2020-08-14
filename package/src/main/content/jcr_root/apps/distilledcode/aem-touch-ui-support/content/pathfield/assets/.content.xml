@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright 2020 Code Distillery GmbH
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:granite="http://www.adobe.com/jcr/granite/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+    jcr:primaryType="nt:unstructured"
+    jcr:title="Select Asset"
+    sling:resourceType="granite/ui/components/coral/foundation/picker"
+    x-path="${granite:relativeParent(requestPathInfo.suffix, 1)}"
+    path="${requestPathInfo.suffix}"
+    rootPath="${empty param.root ? &quot;/&quot; : param.root}"
+    selectionCount="${empty param.selectionCount ? &quot;single&quot; : param.selectionCount}"
+    targetCollection="#granite-ui-pathfield-picker-collection">
+    <views jcr:primaryType="nt:unstructured">
+        <column
+                granite:id="granite-ui-pathfield-picker-collection"
+                jcr:primaryType="nt:unstructured"
+                jcr:title="Column View"
+                sling:resourceType="granite/ui/components/coral/foundation/columnview"
+                icon="viewColumn"
+                itemResourceType="granite/ui/components/coral/foundation/form/pathfield/columnitem"
+                limit="{Long}40"
+                loadAncestors="{Boolean}true"
+                path="${requestPathInfo.suffix}"
+                previewSrc="/mnt/overlay/distilledcode/aem-touch-ui-support/content/pathfield/columnpreview.html{+id}"
+                rootPath="${empty param.root ? &quot;/&quot; : param.root}"
+                selectionCount="${empty param.selectionCount ? &quot;single&quot; : param.selectionCount}"
+                showRoot="{Boolean}true"
+                size="${empty requestPathInfo.selectors[1] ? &quot;40&quot; : requestPathInfo.selectors[1]}"
+                src="/apps/distilledcode/aem-touch-ui-support/content/pathfield/assets/views/column{.offset,limit}.html{+id}?root=${granite:encodeURIComponent(empty param.root ? &quot;/&quot; : param.root)}&amp;filter=${granite:encodeURIComponent(param.filter)}">
+            <datasource
+                    jcr:primaryType="nt:unstructured"
+                    sling:resourceType="granite/ui/components/coral/foundation/form/pathfield/datasources/children"
+                    filter="${param.filter}"
+                    limit="${empty requestPathInfo.selectors[1] ? &quot;41&quot; : requestPathInfo.selectors[1] + 1}"
+                    offset="${requestPathInfo.selectors[0]}"
+                    path="${requestPathInfo.suffix}"/>
+        </column>
+        <card
+            granite:id="granite-ui-pathfield-picker-collection"
+            jcr:primaryType="nt:unstructured"
+            jcr:title="Card View"
+            sling:resourceType="granite/ui/components/coral/foundation/masonry"
+            icon="viewCard"
+            layoutId="card"
+            limit="{Long}20"
+            path="${granite:relativeParent(requestPathInfo.suffix, 1)}"
+            size="${empty requestPathInfo.selectors[1] ? &quot;20&quot; : requestPathInfo.selectors[1]}"
+            src="/mnt/overlay/dam/gui/content/assets/jcr:content/views/card{.offset,limit}.html{+id}">
+            <datasource
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="dam/gui/coral/components/commons/ui/shell/datasources/assetsdatasource"
+                inverseOrder="{Boolean}true"
+                limit="${empty requestPathInfo.selectors[1] ? &quot;21&quot; : requestPathInfo.selectors[1] + 1}"
+                offset="${requestPathInfo.selectors[0]}">
+                <asset
+                    jcr:primaryType="nt:unstructured"
+                    itemResourceType="dam/gui/coral/components/admin/contentrenderer/card/asset"
+                    showOriginalForGifImages="{Boolean}true"
+                    showOriginalIfNoRenditionAvailable="{Boolean}false"/>
+                <directory
+                    jcr:primaryType="nt:unstructured"
+                    itemResourceType="dam/gui/coral/components/admin/contentrenderer/card/directory"/>
+                <contentfragment
+                    jcr:primaryType="nt:unstructured"
+                    itemResourceType="dam/cfm/admin/components/v2/contentrenderer/cards/contentfragment"/>
+            </datasource>
+            <emptyitem
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="granite/ui/components/coral/foundation/include"
+                path="/mnt/overlay/dam/gui/coral/content/commons/empty/emptyitem"/>
+        </card>
+    </views>
+</jcr:root>

@@ -1,0 +1,84 @@
+/*
+ *  Copyright 2020 Code Distillery GmbH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+.coral-Form--vertical distilledcode-assetreference.coral-Form-field {
+    display: block;
+    position: relative;
+    max-width: 100%;
+    padding: .9375rem;
+    margin: .9375rem auto;
+    border: 1px dashed rgba(0, 0, 0, 0.2);
+    border-radius: .3125rem;
+    text-align: center;
+}
+
+.coral-Form--vertical label.coral-Form-fieldlabel + distilledcode-assetreference.coral-Form-field {
+    margin-top: 0;
+}
+
+.distilledcode-assetreference-preview {
+    line-height: 0;
+}
+
+.distilledcode-assetreference-preview:not(.is-disabled):after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    content: "";
+    background: #2583db;
+    border-radius: .25rem;
+    transition: opacity .25s;
+    opacity: 0;
+}
+
+.distilledcode-assetreference-preview:not(.is-disabled).is-active:after {
+    opacity: .2;
+    animation: pulse-dropzone 1.6s infinite;
+}
+
+@keyframes pulse-dropzone {
+    0% {
+        box-shadow: 0 0 0 1.5rem #fff,
+                    0 0 0 1.8rem rgba(37, 121, 219, .5),
+                    0 0 0 2.3rem #fff,
+                    0 0 0 2.5rem rgba(37, 121, 219, .2);
+    }
+    75% {
+        box-shadow: 0 0 0 0 #fff,
+                    0 0 0 0 rgba(37, 121, 219, 1),
+                    0 0 0 0 #fff,
+                    0 0 0 0 rgba(37, 121, 219, 1);
+    }
+    76% {
+        box-shadow: none;
+    }
+}
+
+.distilledcode-assetreference-preview:not(.is-disabled).is-active.is-dragging:after {
+    opacity: .5;
+    animation: none;
+}
+
+.distilledcode-assetreference-thumbnail {
+    max-width: 100%;
+    max-height: 16rem;
+}
+
+.distilledcode-assetreference-placeholder {
+    margin: .9375rem auto;
+}

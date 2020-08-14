@@ -1,0 +1,28 @@
+<!--/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */-->
+<foundation-autocomplete
+    data-sly-use.tagField="net.distilledcode.aem.ui.touch.support.api.ui.granite.TagField"
+    data-sly-attribute="${tagField.attributes}">
+    <coral-overlay data-sly-attribute="${tagField.suggestAttributes}"></coral-overlay>
+    <coral-taglist data-sly-attribute="${tagField.valueAttributes}">
+        <coral-tag data-sly-repeat.tag="${tagField.tags}" multiline value="${tag.value}">${tag.title}</coral-tag>
+    </coral-taglist>
+    <input class="foundation-field-related" type="hidden" name="${tagField.name}@TypeHint" value="String[]"/>
+    <input class="foundation-field-related" type="hidden" name="${tagField.name}@Delete"/>
+</foundation-autocomplete>

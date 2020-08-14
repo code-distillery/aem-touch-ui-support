@@ -1,0 +1,140 @@
+/*
+ *  Copyright 2020 Code Distillery GmbH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+form.coral-Form--vertical .distilledcode-padded-dialog-content {
+    padding: .9375rem;
+    min-height: calc(100vh - 9rem);
+}
+
+@media (min-width: 51.875rem) { /* 50rem + 2 * .9375rem */
+    form.coral-Form--vertical:not(.cq-dialog) .distilledcode-padded-dialog-content,
+    coral-dialog.coral-Dialog--fullscreen form.coral-Form--vertical .distilledcode-padded-dialog-content {
+        padding: .9375rem calc((100% - 50rem) / 2);
+    }
+}
+
+.distilledcode-padded-dialog-content coral-panel-content {
+    margin-top: 1.5625rem;
+}
+
+.distilledcode-padded-dialog-content .coral-Form-fieldset {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.distilledcode-padded-dialog-content label > span.distilledcode-compat-sublabel:before {
+    content: '—';
+    padding: 0 .3125rem;
+}
+.distilledcode-padded-dialog-content label > span.distilledcode-compat-sublabel {
+    font-size: .75rem;
+    color: #bebebe;
+}
+
+.cq-FileUpload.is-filled.distilledcode-fileupload-hide-edit-button button.cq-FileUpload-edit {
+    display: none
+}
+
+/* don't allow the RTE toolbar to be hidden in dialogs */
+.cq-dialog-content .rte-ui .rte-toolbar {
+    visibility: visible !important;
+}
+
+coral-icon.distilledcode-async-validation-in-progress {
+    animation: 2s rotation infinite linear;
+}
+
+coral-icon.distilledcode-async-validation-hidden {
+    display: none;
+}
+
+@keyframes rotation {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(359deg);
+    }
+}
+
+coral-card.distilledcode-columnview-preview-card {
+    min-width: 13.75rem;
+}
+
+coral-popover.rte-dialog--specialchars .rte-dialog-column--specialchars > .rte-specialchars-selector {
+    max-height: 10rem;
+    min-height: 8.5rem;
+    height: unset;
+    width: 16.5rem;
+}
+
+coral-popover.rte-dialog--specialchars {
+    width: 19.5rem;
+}
+
+coral-popover.rte-dialog--specialchars coral-popover-content > coral-popover-separator {
+    display: none;
+}
+
+coral-popover.rte-dialog--specialchars coral-popover-content > .rte-dialog-columnContainer:last-child {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.5rem;
+}
+
+coral-popover.rte-dialog--specialchars coral-popover-content > .rte-dialog-columnContainer:last-child button {
+    border: none;
+    background: none;
+}
+
+.coral-Form-field.cq-RichText .coral-RichText > table {
+    width: 100%;
+}
+
+.coral-Form-field.cq-RichText .coral-RichText > table td {
+    min-width: 1rem;
+}
+
+.cq-RichText {
+    position: static;
+}
+
+.coral-Form-field.cq-RichText .coral-RichText {
+    padding-right: .625rem;
+}
+
+.cq-Dialog:not(.coral-Dialog--fullscreen) .distilledcode-rte-only-tab .coral-Form-field.cq-RichText .coral-RichText {
+    height: unset;
+    min-height: 13.2rem;
+    max-height: 29rem;
+}
+
+/* improve styling for composite multifields */
+[data-granite-coral-multifield-composite] .coral-Multifield-remove {
+    top: -.5rem;
+    right: 1.625rem;
+}
+
+[data-granite-coral-multifield-composite] .coral-Multifield-move {
+    top: -.5rem;
+    right: -.5rem;
+}
+
+[data-granite-coral-multifield-composite] coral-multifield-item:not(:last-of-type) {
+    border-bottom: 1px solid #d0d0d0;
+    padding-bottom: .5rem;
+}
+
+

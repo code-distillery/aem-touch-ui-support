@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright 2020 Code Distillery GmbH
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:granite="http://www.adobe.com/jcr/granite/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
+    jcr:primaryType="cq:Page">
+    <jcr:content
+        jcr:primaryType="cq:PageContent"
+        jcr:title="Touch UI Conversion Projects - Overview"
+        sling:resourceType="granite/ui/components/shell/collectionpage"
+        consoleId="distilledcode-touch-ui-support-converter-overview"
+        modeGroup="distilledcode-touch-ui-support-converter-overview"
+        targetCollection=".foundation-collection">
+        <head jcr:primaryType="nt:unstructured">
+            <clientlibs
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="granite/ui/components/foundation/includeclientlibs"
+                categories="[distilledcode.aem-touch-ui-support.consoles]"/>
+        </head>
+        <actions jcr:primaryType="nt:unstructured">
+            <secondary jcr:primaryType="nt:unstructured">
+                <create
+                    jcr:primaryType="nt:unstructured"
+                    sling:resourceType="granite/ui/components/coral/foundation/collection/action"
+                    action="distilledcode.collection.action.post.items"
+                    disabled="{Boolean}true"
+                    relScope="none"
+                    text="Create "
+                    variant="primary">
+                    <data
+                        jcr:primaryType="nt:unstructured"
+                        delay="500"
+                        href="/apps/distilledcode/aem-touch-ui-support/ui/converter?force=true"
+                        paramName="paths"/>
+                </create>
+            </secondary>
+            <selection jcr:primaryType="nt:unstructured">
+                <convert
+                        jcr:primaryType="nt:unstructured"
+                        sling:resourceType="granite/ui/components/coral/foundation/collection/action"
+                        action="distilledcode.collection.action.post.items"
+                        activeCount=">0"
+                        activeSelectionCount="multiple"
+                        icon="wrench"
+                        relScope="none"
+                        text="Convert"
+                        variant="actionBar">
+                    <data
+                        jcr:primaryType="nt:unstructured"
+                        delay="500"
+                        href="/apps/distilledcode/aem-touch-ui-support/ui/converter?force=true"
+                        paramName="paths"/>
+                    <granite:rendercondition
+                        jcr:primaryType="nt:unstructured"
+                        sling:resourceType="distilledcode/aem-touch-ui-support/ui-components/renderconditions/is-converter-available"/>
+                </convert>
+            </selection>
+        </actions>
+        <views jcr:primaryType="nt:unstructured">
+            <list
+                granite:class="distilledcode-table"
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="granite/ui/components/coral/foundation/table"
+                itemResourceType="distilledcode/aem-touch-ui-support/ui-components/converter/overview/column"
+                modeGroup="distilledcode-touch-ui-support-console"
+                path="${requestPathInfo.suffix}"
+                selectionCount="multiple"
+                selectionMode="row">
+                <columns jcr:primaryType="nt:unstructured">
+                    <select
+                        jcr:primaryType="nt:unstructured"
+                        select="{Boolean}true"/>
+                    <name
+                        jcr:primaryType="nt:unstructured"
+                        jcr:title="Conversion Project"
+                        sortable="{Boolean}true"/>
+                    <path
+                        jcr:primaryType="nt:unstructured"
+                        jcr:title="Path"
+                        sortable="{Boolean}true"/>
+                    <scope
+                        jcr:primaryType="nt:unstructured"
+                        jcr:title="Scope"/>
+                    <statistics
+                        jcr:primaryType="nt:unstructured"
+                        jcr:title="Statistics"/>/>
+                </columns>
+                <datasource
+                    jcr:primaryType="nt:unstructured"
+                    path="/conf/distilledcode/aem-touch-ui-conversion-projects"
+                    sling:resourceType="distilledcode/cq/wcm/foundation/children"/>
+            </list>
+        </views>
+    </jcr:content>
+</jcr:root>
