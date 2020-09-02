@@ -20,10 +20,10 @@
     sling:resourceType="granite/ui/components/coral/foundation/picker"
     rootPath="/etc/tags"
     selectionCount="${empty param.selectionCount ? &quot;single&quot; : param.selectionCount}"
-    targetCollection="#cq-ui-tagfield-picker-collection">
+    targetCollection="#distilledcode-tagfield-picker">
     <views jcr:primaryType="nt:unstructured">
         <column
-                granite:id="cq-ui-tagfield-picker-collection"
+                granite:id="distilledcode-tagfield-picker"
                 jcr:primaryType="nt:unstructured"
                 jcr:title="Column View"
                 sling:resourceType="granite/ui/components/coral/foundation/columnview"
