@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -131,6 +132,7 @@ public class ConsoleItem {
         final Iterable<Resource> resources = () -> resolver.findResources(query, "xpath");
         return StreamSupport.stream(resources.spliterator(), false)
                 .map(pageManager::getContainingPage)
+                .filter(Objects::nonNull)
                 .map(page -> {
                     final String title = page.getProperties().get("jcr:title", page.getName());
                     return new Link(title, "/editor.html" + page.getPath() + ".html",
