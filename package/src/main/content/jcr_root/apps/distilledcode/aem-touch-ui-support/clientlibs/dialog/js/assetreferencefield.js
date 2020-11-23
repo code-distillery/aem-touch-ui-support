@@ -86,6 +86,8 @@
                 // pathbrowser config copied from Granite.author.editor.ImageEditor.defaults
                 // because that one is only available when editing a page and not when editing
                 // a page properties dialog
+                // - adjusted pickerTitle for i18n
+                // - renamed pickerCrumbRoot to correct crumbRoot, added i18n and correct icon
                 pathbrowser: {
                     type: 'picker',
                     
@@ -119,11 +121,11 @@
                     },
 
                     /* picker configuration: */
-                    pickerSrc: '/libs/wcm/core/content/common/pathbrowser/column.html' + '/content' + '?predicate=hierarchyNotFile',
-                    pickerTitle: 'Choose a target path',
-                    picketCrumbRoot: {
-                        title: 'Content Root',
-                        icon: 'coral-Icon-home'
+                    pickerSrc: '/libs/wcm/core/content/common/pathbrowser/column.html/content?predicate=hierarchyNotFile',
+                    pickerTitle: Granite.I18n.get('Select Path'),
+                    crumbRoot: {
+                        title: Granite.I18n.get('Content Root'),
+                        icon: 'coral3-Icon coral3-Icon--home'
                     }
                 }
             },
