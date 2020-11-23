@@ -145,11 +145,12 @@
                         
                         <exclude>**/.vltignore</exclude>
                     </excludes>
+                    <consoleOutput>true</consoleOutput>
                 </configuration>
                 <executions>
                     <execution>
                         <id>rat-check</id>
-                        <phase>verify</phase>
+                        <phase>validate</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
