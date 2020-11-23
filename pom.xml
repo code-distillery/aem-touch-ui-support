@@ -41,6 +41,10 @@
         <tag>HEAD</tag>
     </scm>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <modules>
         <module>parent</module>
         <module>bundle</module>
