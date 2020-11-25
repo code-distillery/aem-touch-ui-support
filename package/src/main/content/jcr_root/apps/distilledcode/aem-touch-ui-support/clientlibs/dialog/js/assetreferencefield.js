@@ -229,27 +229,38 @@
                     throw 'Invalid shape string: "' + serializedData;
                 }
 
-                var shapeDefs = serializedData.substring(1, serializedData.length - 1).split('][');
+                var mapDefs = serializedData.substring(1, serializedData.length - 1).split('][');
                 var areas = [];
-                for (var i = 0; i < shapeDefs.length; i++) {
-                    // e.g. rect(596,182,1024,512)"/content/geometrixx/en"|"_blank"|"Geometrixx"|(0.4656,0.2844,0.8,0.8)
-                    var shapeDef = shapeDefs[i];
+                for (var i = 0; i < mapDefs.length; i++) {
+                    // e.g. 'rect(596,182,1024,512)"/content/geometrixx/en"|"_blank"|"Geometrixx"|(0.4656,0.2844,0.8,0.8)'
+                    // but could also just be 'rect(1535,1013,1752,1168)||'
+                    var mapDef = mapDefs[i];
+                    var parts = mapDef.split(')');
 
-                    var coordStart = shapeDef.indexOf('(') + 1;
-                    var hrefStart = shapeDef.indexOf(')"', coordStart) + 2;
-                    var targetStart = shapeDef.indexOf('"|"', hrefStart) + 3;
-                    var altStart = shapeDef.indexOf('"|"', targetStart) + 3;
-                    var relCoordsStart = shapeDef.indexOf('"|(', altStart) + 3;
-                    var end = shapeDef.indexOf(')', relCoordsStart);
+                    var area = Object.create(null);
+                    if (parts.length < 2) {
+                        continue;
+                    }
+
+                    var shapeDef = parts[0].split('(');
+                    var linkDef = parts[1].split('|');
+                    // we don't care about relative coordinates that can optionally be in parts[2]
+
+                    function unquote(str) {
+                        if (str.charAt(0) == '"' && str.charAt(str.length - 1) == '"') {
+                            return str.substring(1, str.length - 1);
+                        }
+                        return str;
+                    }
 
                     var area = {
-                        shape: shapeDef.substring(0, coordStart - 1),
-                        href: shapeDef.substring(hrefStart, targetStart - 3),
-                        target: shapeDef.substring(targetStart, altStart - 3),
-                        alt: shapeDef.substring(altStart, relCoordsStart - 3),
+                        shape: shapeDef[0],
+                        href: linkDef.length > 0 ? unquote(linkDef[0]) : '',
+                        target: linkDef.length > 1 ? unquote(linkDef[1]) : '',
+                        alt: linkDef.length > 2 ? unquote(linkDef[2]) : ''
                     };
 
-                    var coords = shapeDef.substring(coordStart, hrefStart - 2).split(',').map(x => parseInt(x, 10));
+                    var coords = shapeDef[1].split(',').map(x => parseInt(x, 10));
                     switch(area.shape) {
                         case 'circle':
                             var radius = coords[2];
