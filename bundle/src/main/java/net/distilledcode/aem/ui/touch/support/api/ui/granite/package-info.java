@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-@Version("0.1.0")
+@Version("0.2.0")
 package net.distilledcode.aem.ui.touch.support.api.ui.granite;
 
 import org.osgi.annotation.versioning.Version;

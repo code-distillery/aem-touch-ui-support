@@ -53,7 +53,8 @@ public class TagField extends Field<String[]> {
     }
 
     @Override
-    protected String @NotNull [] getDefaultValue() {
+    @NotNull
+    protected String[] getDefaultValue() {
         return new String[0];
     }
 

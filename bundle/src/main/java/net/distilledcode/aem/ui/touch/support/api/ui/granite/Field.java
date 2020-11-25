@@ -83,6 +83,11 @@ public abstract class Field<V> extends Component {
     }
 
     @NotNull
+    protected final <T> Optional<T> getStoredValueByName(String name, Class<T> type) {
+        return Optional.ofNullable(value.get(name, type));
+    }
+
+    @NotNull
     protected final Optional<V> getStoredValueByName(String name, V defaultValue) {
         return Optional.ofNullable(value.val(name, defaultValue));
     }

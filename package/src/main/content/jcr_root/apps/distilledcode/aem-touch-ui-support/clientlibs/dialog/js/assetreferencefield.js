@@ -145,10 +145,14 @@
 
     var TRANSFORMATION_HANDLERS = {
         crop: {
-            serialize: function serializeCrop(data) {
-                return [data.left, data.top, data.left + data.width, data.top + data.height].join(',');
+            serialize: function serializeCrop(data, naturalWidth, naturalHeight) {
+                var resizeBaseline = Math.max(naturalWidth, naturalHeight)
+                var ratio = resizeBaseline > 1280 ? (1280 / resizeBaseline) : 1;
+                return [data.left, data.top, data.left + data.width, data.top + data.height]
+                    .map(val => Math.round(val * ratio))
+                    .join(',');
             },
-            deserialize: function deserializeCrop(serializedData) {
+            deserialize: function deserializeCrop(serializedData, naturalWidth, naturalHeight) {
                 var slashPos = serializedData.indexOf('/')
                 var rawCrop = slashPos === -1 ? serializedData : serializedData.substring(0, slashPos);
                 var coords = rawCrop.split(',');
@@ -156,8 +160,9 @@
                     throw `'${serializedData}' cannot be split into 4 crop coordinates`;
                 }
 
-                coords = coords.map(n => parseInt(n, 10));
-
+                var resizeBaseline = Math.max(naturalWidth, naturalHeight)
+                var ratio = resizeBaseline > 1280 ? (resizeBaseline / 1280) : 1;
+                coords = coords.map(n => Math.round(parseInt(n, 10) * ratio));
                 return {
                     left:   coords[0],
                     top:    coords[1],
@@ -510,23 +515,23 @@
             this._elements.inputs[name].value = value;
         },
 
-        _deserializeTransformation: function(type, data) {
-            var value = TRANSFORMATION_HANDLERS[type].deserialize(data);
+        _deserializeTransformation: function(type, data, naturalWidth, naturalHeight) {
+            var value = TRANSFORMATION_HANDLERS[type].deserialize(data, naturalWidth, naturalHeight);
             value.transformation = type;
             return value;
         },
 
-        _loadTransformations: function () {
+        _loadTransformations: function (naturalWidth, naturalHeight) {
             var handlers = Object.keys(TRANSFORMATION_HANDLERS);
-            var result = [];
+            var result = Object.create(null);
             for (var i = 0; i < handlers.length; i++) {
                 var type = handlers[i];
                 var fieldName = HIDDEN_INPUT_NAMES[type];
                 var value = this._elements.inputs[fieldName].value;
                 if (value) {
-                    var deserializedValue = this._deserializeTransformation(type, value);
+                    var deserializedValue = this._deserializeTransformation(type, value, naturalWidth, naturalHeight);
                     if (deserializedValue) {
-                        result.push(deserializedValue);
+                        result[type] = deserializedValue;
                     }
                 }
             }
@@ -569,7 +574,10 @@
                     return moment(dateStr, 'ddd MMM D YYYY HH:mm:ss [GMT]ZZ', 'en', true)
                 }
 
-                $(img).one('load', e => self._updateImageCss(self._loadTransformations()));
+                $(img).one('load', e => {
+                    var image = e.target;
+                    self._updateImageCss(self._loadTransformations(image.naturalWidth, image.naturalHeight));
+                });
                 $.getJSON(`${val}/_jcr_content/renditions.tidy.1.json`, function(json) {
                     var defaultWebRendition = 'cq5dam.web.1280.1280.jpeg';
                     // support non-default web rendition sizes; sort if there
@@ -662,9 +670,8 @@
             var img = this._elements.img, // assume that img is web rendition @ 1280x1280
                 $img = $(img).removeAttr('style'),
                 $containingPanel = $img.closest('coral-panel'),
-                t = transformations.reduce((acc, curr) => { acc[curr.transformation] = curr; return acc; }, {}),
-                crop = t['crop'],
-                angle = t['rotate'] !== undefined ? t['rotate'].angle : 0,
+                crop = transformations['crop'],
+                angle = transformations['rotate'] !== undefined ? transformations['rotate'].angle : 0,
                 // rotated 90 or 270 degrees, which causes width and height to be swapped
                 swapDimensions = angle % 180 === 90,
                 transformOrigin = undefined,
@@ -764,9 +771,10 @@
             canvas.empty();
 
             var val = this.value;
+            var editorConfig = this._postProcessPluginConfig($(this).data('image-editor-config') || {})
 
             $('<img>', {
-                src: this._elements.img.src,
+                src: editorConfig.referenceImagePath || this._elements.img.src,
                 alt: val,
                 title: val
             })
@@ -782,13 +790,7 @@
                         }
                     });
 
-                var transformations = this._loadTransformations();
-                var translationUtil = new CUI.imageeditor.TranslationUtil({
-                    rotation: transformations.filter(t => t.transformation === 'rotate').map(t => t.angle).reduce(Math.max, 0),
-                    naturalHeight: image.naturalHeight,
-                    naturalWidth: image.naturalWidth,
-                    cropOnOriginal: transformations.filter(t => t.transformation === 'crop').reduce((acc, curr) => acc || curr, null)
-                });
+                var transformations = this._loadTransformations(image.naturalWidth, image.naturalHeight);
 
                 $(image)
                     .one('editing-cancelled', function(event) {
@@ -799,14 +801,20 @@
                         self._storeTransformations(data.result, event.target.naturalWidth, event.target.naturalHeight);
                     })
                     .one('editing-start', function() {
-                        var toolbars = canvas.find('.imageeditor-toolbar')
+                        var toolbars = canvas.find('.imageeditor-toolbar');
                         var toolbarHeights = $.map(toolbars, function(el) { return $(el).height(); });
-                        var maxToolbarHeight = Math.max.apply(null, toolbarHeights)
+                        var maxToolbarHeight = Math.max.apply(null, toolbarHeights);
                         var availableDimensions = {
                             height: canvas.height() - 10 - 2 * maxToolbarHeight,
                             width: canvas.width() - 10,
-                        }
+                        };
 
+                        var translationUtil = new CUI.imageeditor.TranslationUtil({
+                            rotation: transformations['rotate'] !== undefined ? transformations['rotate'].angle : 0,
+                            naturalHeight: image.naturalHeight,
+                            naturalWidth: image.naturalWidth,
+                            cropOnOriginal: transformations['crop']
+                        });
                         var imageDimensions = translationUtil.getDisplayDimensions();
                         var zoomFactor = Math.min(
                             availableDimensions.height / imageDimensions.height,
@@ -818,11 +826,16 @@
                         }
                     });
 
-                var editorConfig = {
-                    plugins: this._postProcessPluginConfig($(this).data('image-editor-config') || {})
-                };
-                var options = $.extend(true, {}, DEFAULT_IMAGE_EDITOR_OPTIONS, editorConfig);
-                options.result = transformations;
+                var transformationsArray = Object.keys(transformations)
+                    .reduce((acc, key) => {
+                        acc[key] = transformations[key];
+                        return acc;
+                    }, Object.create(null))
+
+                var options = $.extend(true, {}, DEFAULT_IMAGE_EDITOR_OPTIONS, {
+                    plugins: editorConfig,
+                    result: transformationsArray
+                });
 
                 editor.start(options);
             })
