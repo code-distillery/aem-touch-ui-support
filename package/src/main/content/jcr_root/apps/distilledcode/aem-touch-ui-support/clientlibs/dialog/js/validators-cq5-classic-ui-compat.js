@@ -39,7 +39,7 @@
     }
 
     function getCachedPromise($field, value) {
-        var cache = $field.data(ASYNC_VALIDATION_CACHE) || {};
+        var cache = $field.data(ASYNC_VALIDATION_CACHE) || {};
         var hash = hashCode(value);
         if (cache.hasOwnProperty(hash)) {
             var entry = cache[hash];
@@ -104,12 +104,12 @@
                 var $field = $(field);
                 var value = getValue(field);
                 if (value === '') {
-                    return;
+                    return true;
                 }
                 
                 var msgName = name.split('.').pop();
                 var errorMsg = $field.attr('data-distilledcode-validation-message-' + msgName)
-                    || $field.attr('data-distilledcode-validation-message');
+                    || $field.attr('data-distilledcode-validation-message');
                 var i18nErrorMsg = !!errorMsg ? Granite.I18n.get(errorMsg) : i18nDefaultErrorMsg;
 
                 var promise = getCachedPromise($field, value);
@@ -221,10 +221,10 @@
             validate: function(field) {
                 var msgName = name.split('.').pop();
                 var errorMsg = $(field).attr('data-distilledcode-validation-message-' + msgName)
-                    || $(field).attr('data-distilledcode-validation-message');
+                    || $(field).attr('data-distilledcode-validation-message');
                 var i18nErrorMsg = !!errorMsg ? Granite.I18n.get(errorMsg) : i18nDefaultErrorMsg;
                 var value = getValue(field);
-                return validationFn(field, value) ? undefined : i18nErrorMsg;
+                return value === '' || validationFn(field, value) ? undefined : i18nErrorMsg;
             }
         });
     }
