@@ -99,16 +99,6 @@
 
         config: Object.create(null),
 
-        _init: function (editorKernel, pluginId) {
-            this.inherited(arguments);
-            editorKernel.initialized = true; // workaround for editorkernel bug preventing beforecommandexecuted to be triggered
-            editorKernel.addPluginListener('beforekeydown', this._handleBeforeKeyDown, this, this, false);
-            editorKernel.addPluginListener('keyup', this._handleKeyUp, this, this, false);
-            editorKernel.addPluginListener('commandexecuted', this._handleCommandExecuted, this, this, false);
-            editorKernel.addPluginListener('beforecommandexecuted', this._handleBeforeCommandExecuted, this, this, false);
-            this._setupContentInterception(editorKernel);
-        },
-
         getFeatures: function () {
             return ['addplaceholder'];
         },
@@ -121,6 +111,13 @@
                 tbGenerator.addElement('placeholder', plg.Plugin.SORT_MISC, placeholderUI, 100);
                 tbGenerator.registerAdditionalClasses('placeholder#addplaceholder', ['rte--trigger']);
                 tbGenerator.registerIcon('placeholder#addplaceholder', 'coral-Icon coral-Icon--brackets');
+
+                var editorKernel = this.editorKernel;
+                editorKernel.addPluginListener('beforekeydown', this._handleBeforeKeyDown, this, this, false);
+                editorKernel.addPluginListener('keyup', this._handleKeyUp, this, this, false);
+                editorKernel.addPluginListener('commandexecuted', this._handleCommandExecuted, this, this, false);
+                editorKernel.addPluginListener('beforecommandexecuted', this._handleBeforeCommandExecuted, this, this, false);
+                this._setupContentInterception(editorKernel);
             }
         },
 
