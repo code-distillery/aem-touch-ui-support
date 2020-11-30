@@ -72,8 +72,12 @@ public class AssetReferenceField extends GenericStringField {
     @SuppressWarnings("deprecation") // currently no alternative to Value.CONTENTPATH_ATTRIBUTE is available
     private String computeContentPath(@NotNull SlingHttpServletRequest request) {
         final String formContentPath = (String) request.getAttribute(Value.CONTENTPATH_ATTRIBUTE);
+        if (formContentPath == null) {
+            return null;
+        }
         final String name = ResourceUtil.normalize(getName());
-        return name != null ? (formContentPath + '/' + name.substring(0, name.lastIndexOf('/'))) : null;
+        final int lastSlashPos = name != null ? name.lastIndexOf('/') : -1;
+        return lastSlashPos > 0 ? (formContentPath + '/' + name.substring(0, lastSlashPos)) : null;
     }
 
     @Override
@@ -92,7 +96,7 @@ public class AssetReferenceField extends GenericStringField {
     }
 
     private void setEditorConfiguration(Map<String, Object> attributes) {
-        if (this.properties.get("enableImageEditor", false)) {
+        if (isImageEditorEnabled()) {
             final JsonObjectBuilder config = Json.createObjectBuilder();
 
             Optional.ofNullable(this.resource.getChild("cropConfig"))
@@ -100,12 +104,16 @@ public class AssetReferenceField extends GenericStringField {
 
             final ValueMap properties = new ValueMapView(this);
             pathProviders.stream()
-                    .map(p -> p.getReferenceImagePath(contentPath, properties))
+                    .map(p -> contentPath == null ? null : p.getReferenceImagePath(contentPath, properties))
                     .filter(Objects::nonNull)
                     .findFirst()
                     .ifPresent(path -> config.add("referenceImagePath", path));
             attributes.put("data-image-editor-config", config.build().toString());
         }
+    }
+
+    private boolean isImageEditorEnabled() {
+        return this.properties.get("enableImageEditor", false);
     }
 
     private JsonObjectBuilder toJson(Resource resource) {
