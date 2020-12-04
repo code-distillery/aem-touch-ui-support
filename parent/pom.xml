@@ -214,9 +214,6 @@
                             <configuration>
                                 <failOnError>true</failOnError>
                                 <failOnWarning>true</failOnWarning>
-                                <filters>
-                                    !net.distilledcode.aem.ui.touch.support.api.ui.granite
-                                </filters>
                             </configuration>
                         </execution>
                     </executions>
