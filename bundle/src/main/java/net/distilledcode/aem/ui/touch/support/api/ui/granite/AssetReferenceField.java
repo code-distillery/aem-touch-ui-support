@@ -15,14 +15,11 @@
  */
 package net.distilledcode.aem.ui.touch.support.api.ui.granite;
 
-import com.adobe.granite.ui.components.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceUtil;
 import org.apache.sling.api.resource.ValueMap;
-import org.apache.sling.api.wrappers.ValueMapDecorator;
 import org.apache.sling.models.annotations.Model;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
@@ -35,11 +32,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -52,32 +46,9 @@ import java.util.stream.StreamSupport;
 @ProviderType
 public class AssetReferenceField extends GenericStringField {
 
-    private final List<AssetReferencePathProvider> pathProviders;
-
-    private final String contentPath;
-
-    @SuppressWarnings("unused")
-    @Deprecated // kept only for backwards compatibility
-    public AssetReferenceField(@NotNull SlingHttpServletRequest request) {
-        this(request, Collections.emptyList());
-    }
-
     @Inject
-    public AssetReferenceField(@NotNull SlingHttpServletRequest request, @NotNull List<AssetReferencePathProvider> pathProviders) {
+    public AssetReferenceField(@NotNull SlingHttpServletRequest request) {
         super(request);
-        this.pathProviders = Collections.unmodifiableList(pathProviders);
-        this.contentPath = computeContentPath(request);
-    }
-
-    @SuppressWarnings("deprecation") // currently no alternative to Value.CONTENTPATH_ATTRIBUTE is available
-    private String computeContentPath(@NotNull SlingHttpServletRequest request) {
-        final String formContentPath = (String) request.getAttribute(Value.CONTENTPATH_ATTRIBUTE);
-        if (formContentPath == null) {
-            return null;
-        }
-        final String name = ResourceUtil.normalize(getName());
-        final int lastSlashPos = name != null ? name.lastIndexOf('/') : -1;
-        return lastSlashPos > 0 ? (formContentPath + '/' + name.substring(0, lastSlashPos)) : null;
     }
 
     @Override
@@ -97,18 +68,10 @@ public class AssetReferenceField extends GenericStringField {
 
     private void setEditorConfiguration(Map<String, Object> attributes) {
         if (isImageEditorEnabled()) {
-            final JsonObjectBuilder config = Json.createObjectBuilder();
-
             Optional.ofNullable(this.resource.getChild("cropConfig"))
-                    .ifPresent(cropConfig -> config.add("crop", toJson(cropConfig)));
-
-            final ValueMap properties = new ValueMapView(this);
-            pathProviders.stream()
-                    .map(p -> contentPath == null ? null : p.getReferenceImagePath(contentPath, properties))
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .ifPresent(path -> config.add("referenceImagePath", path));
-            attributes.put("data-image-editor-config", config.build().toString());
+                    .map(this::toJson)
+                    .map(cropConfig -> Json.createObjectBuilder().add("crop", cropConfig).build())
+                    .ifPresent(config -> attributes.put("data-image-editor-config", config.toString()));
         }
     }
 
@@ -191,39 +154,6 @@ public class AssetReferenceField extends GenericStringField {
             return name;
         } else {
             return getName().substring(0, pos + 1) + name;
-        }
-    }
-
-    private static class ValueMapView extends ValueMapDecorator {
-
-        private final AssetReferenceField assetReferenceField;
-
-        public ValueMapView(AssetReferenceField assetReferenceField) {
-            super(new HashMap<>());
-            this.assetReferenceField = assetReferenceField;
-        }
-
-        @Override
-        public Object get(Object key) {
-            Object value;
-            // note: calling super.computeIfAbsent((String)key, this::lookupValue)
-            // causes endless recursion, so we need a re-implementation
-            if ((value = super.get(key)) == null && !super.containsKey(key)) {
-                super.put((String)key, lookupValue(key).orElse(null));
-                value = super.get(key);
-            }
-            return value;
-        }
-
-        @Override
-        public boolean containsKey(Object key) {
-            return super.containsKey(key) || get(key) != null;
-        }
-
-        @NotNull
-        private Optional<?> lookupValue(Object key) {
-            final String name = assetReferenceField.getPrefixedName((String) key);
-            return assetReferenceField.getStoredValueByName(name, Object.class);
         }
     }
 }

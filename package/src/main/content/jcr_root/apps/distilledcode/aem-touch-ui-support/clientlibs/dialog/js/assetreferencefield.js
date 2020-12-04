@@ -145,24 +145,44 @@
 
     var TRANSFORMATION_HANDLERS = {
         crop: {
-            serialize: function serializeCrop(data, naturalWidth, naturalHeight) {
-                var resizeBaseline = Math.max(naturalWidth, naturalHeight)
-                var ratio = resizeBaseline > 1280 ? (1280 / resizeBaseline) : 1;
-                return [data.left, data.top, data.left + data.width, data.top + data.height]
-                    .map(val => Math.round(val * ratio))
-                    .join(',');
+
+            _scaleCrop:function(field, transformations, naturalWidth, naturalHeight, invertRatio) {
+                var crop = transformations['crop'];
+                if (!crop) {
+                    return null;
+                }
+                var ref = field.info.classicUiCropReference;
+                if (ref && naturalWidth !== ref.width || naturalHeight !== ref.height) {
+                    var ratio = Math.max(naturalWidth, naturalHeight) / Math.max(ref.width, ref.height);
+                    if (invertRatio) {
+                        ratio = 1 / ratio;
+                    }
+                    var scaled = scale(ratio, transformations['crop'], 'left top width height'.split(' '));
+                    scaled.transformation = 'crop';
+                    return scaled;
+                }
             },
+
+            beforeSerialization: function(field, transformations, naturalWidth, naturalHeight) {
+                return this._scaleCrop(field, transformations, naturalWidth, naturalHeight, true);
+            },
+
+            afterDeserialization: function(field, transformations, naturalWidth, naturalHeight) {
+                return this._scaleCrop(field, transformations, naturalWidth, naturalHeight, false);
+            },
+
+            serialize: function serializeCrop(data, naturalWidth, naturalHeight) {
+                return [data.left, data.top, data.left + data.width, data.top + data.height].join(',');
+            },
+
             deserialize: function deserializeCrop(serializedData, naturalWidth, naturalHeight) {
                 var slashPos = serializedData.indexOf('/')
                 var rawCrop = slashPos === -1 ? serializedData : serializedData.substring(0, slashPos);
-                var coords = rawCrop.split(',');
+                var coords = rawCrop.split(',').map(n => Math.round(parseInt(n, 10)));
                 if (coords.length != 4) {
                     throw `'${serializedData}' cannot be split into 4 crop coordinates`;
                 }
 
-                var resizeBaseline = Math.max(naturalWidth, naturalHeight)
-                var ratio = resizeBaseline > 1280 ? (resizeBaseline / 1280) : 1;
-                coords = coords.map(n => Math.round(parseInt(n, 10) * ratio));
                 return {
                     left:   coords[0],
                     top:    coords[1],
@@ -186,6 +206,90 @@
         },
 
         map: {
+            _computeImageMapReferenceDimensions: function(field, naturalWidth, naturalHeight) {
+                var formData = Array.from(new FormData(field.closest('form')).entries())
+                            .reduce((acc, curr) => { acc[curr[0]] = curr[1]; return acc; }, Object.create(null));
+                var dimensionProviders = $(window).adaptTo('foundation-registry')
+                        .get('distilledcode.assetreference.imageeditor.map.dimension.provider')
+                var sortedProviders = [...dimensionProviders].sort((a, b) => (a.ranking || 0) - (b.ranking || 0));
+                var dimensions = sortedProviders.reduce((acc, curr) => {
+                    if (acc === undefined) {
+                        var result = curr.handler(field, formData, naturalWidth, naturalHeight);
+                        return !result || (result.width === -1 && result.height === -1) ? acc : result;
+                    } else {
+                        // use first handler that returned a valid
+                        return acc;
+                    }
+                }, undefined);
+                return dimensions;
+            },
+
+            _scaleMaps: function(field, transformations, naturalWidth, naturalHeight, invertRatio) {
+                var map = transformations['map'];
+                if (!map || !map.areas) {
+                    return null;
+                }
+
+                var naturalDimensions = { width: naturalWidth, height: naturalHeight };
+                var originalDimensions = { width: field.info.width, height: field.info.height };
+                var refDimensions = this._computeImageMapReferenceDimensions(field, naturalWidth, naturalHeight) || naturalDimensions;
+                
+                // don't exceed physical dimensions of the original rendition
+                if (originalDimensions.width < refDimensions.width || originalDimensions.height < refDimensions.height) {
+                    refDimensions = originalDimensions;
+                }
+
+                // we need the crop coordinates adjusted for the web rendition when loading data (afterDeserialization)
+                // but the crop coordinates already correspond to the web rendition when saving data (beforeSerialization)
+                var crop = transformations['crop'];
+                var scaledCrop;
+                if (!crop) {
+                    scaledCrop = naturalDimensions;
+                } else {
+                    scaledCrop = invertRatio
+                        ? crop
+                        : TRANSFORMATION_HANDLERS['crop']._scaleCrop(field, transformations, naturalWidth, naturalHeight, invertRatio);
+                    scaledCrop = scaledCrop || crop; // _scaleCrop may return undefined
+                }
+
+                // calculate max available width and height based on crop % and original rendition, then adjust refDimensions accordingly
+                var maxCroppedDimensions = {
+                    w: Math.round(originalDimensions.width * scaledCrop.width / naturalWidth),
+                    h: Math.round(originalDimensions.height * scaledCrop.height / naturalHeight)
+                }
+
+                var croppedDimensions = { w: scaledCrop.width, h: scaledCrop.height };
+
+                var refDimForRatio = {
+                    w: Math.min(refDimensions.width, maxCroppedDimensions.w),
+                    h: Math.min(refDimensions.height, maxCroppedDimensions.h)
+                };
+                var ratio = resizeRatio(croppedDimensions, refDimForRatio);
+                if (invertRatio) {
+                    ratio = 1 / ratio;
+                }
+
+                if (map.areas) {
+                    for (var i = 0; i < map.areas.length; i++) {
+                        var area = map.areas[i];
+                        if (area.shape === 'polygon') {
+                            area.points = area.points.map(p => scale(ratio, p, 'w h'.split(' ')));
+                        } else {
+                            area.selection = scale(ratio, area.selection, 'left top width height'.split(' '));
+                        }
+                    }
+                }
+                return map;
+            },
+
+            beforeSerialization: function(field, transformations, naturalWidth, naturalHeight) {
+                return this._scaleMaps(field, transformations, naturalWidth, naturalHeight, true);
+            },
+
+            afterDeserialization: function(field, transformations, naturalWidth, naturalHeight) {
+                return this._scaleMaps(field, transformations, naturalWidth, naturalHeight, false);
+            },
+
             serialize: function serializeMap(data, naturalWidth, naturalHeight) {
                 var areas = [];
                 for (var i = 0; i < data.areas.length; i++) {
@@ -217,13 +321,18 @@
                             throw "Unsupported image-map shape: " + data.shape;
                     }
 
-                    var relCoords = coords.map((coord, idx) => Math.round(coord / (idx % 2 === 0 ? naturalWidth : naturalHeight) * 10000) / 10000);
+                    // TODO: verify relative coordinates are correct with cropped images
+                    // var relCoords = coords.map((coord, idx) =>
+                    //     Math.round(coord * 10000 / (idx % 2 === 0 ? naturalWidth : naturalHeight)) / 10000);
+                    // areas.push(`[${shape}(${coords.join(',')})` +
+                    //    `"${area.href}"|"${area.target}"|"${area.alt}"|(${relCoords.join(',')})]`);
 
                     areas.push(`[${shape}(${coords.join(',')})` +
-                        `"${area.href}"|"${area.target}"|"${area.alt}"|(${relCoords.join(',')})]`);
+                        `"${area.href}"|"${area.target}"|"${area.alt}"]`);
                 }
                 return areas.join('');
             },
+
             deserialize: function deserializeMap(serializedData) {
                 if (!(serializedData.charAt(0) === '[' && serializedData.charAt(serializedData.length - 1) === ']')) {
                     throw 'Invalid shape string: "' + serializedData;
@@ -332,6 +441,43 @@
         });
     }
 
+    function sortAlwaysFirst(testFn) {
+        return (a, b) => testFn(a) ? -1 : (testFn(b) ? 1 : 0);
+    }
+
+    function sortBy(valueMapperFn) {
+        return (a, b) => {
+            var valA = valueMapperFn(a);
+            var valB = valueMapperFn(b);
+            return valA === valB ? 0 : (valA < valB ? -1 : 1);
+        }
+    }
+
+    function sortByName() {
+        return sortBy(e => e.name);
+    }
+
+    function chainedSort(...sortFns) {
+        return (a, b) => sortFns.reduce((acc, fn) => acc === 0 ? fn(a, b) : acc, 0);
+    }
+
+    function resizeRatio(container, content) {
+        return 1 / Math.max(
+            content.w / container.w,
+            content.h / container.h
+        );
+    }
+
+    function scale(ratio, values, keys) {
+        if (ratio === 1) {
+            return values;
+        }
+        var result = Object.create(null);
+        keys.forEach(key => {
+            result[key] = Math.round(values[key] * ratio);
+        });
+        return result;
+    }
 
     Coral['DistilledCode'] = Coral['DistilledCode'] || {};
     Coral.register({
@@ -500,23 +646,6 @@
             });
         },
 
-        _storeTransformations: function(data, naturalWidth, naturalHeight) {
-            var handlers = Object.keys(TRANSFORMATION_HANDLERS);
-            for (var i = 0; i < handlers.length; i++) {
-                var type = handlers[i];
-                this._setHiddenInput(HIDDEN_INPUT_NAMES[type], '');
-                for (var j = 0; j < data.length; j++) {
-                    if (type === data[j].transformation) {
-                        var serializedData = TRANSFORMATION_HANDLERS[type].serialize(data[j], naturalWidth, naturalHeight);
-                        this._setHiddenInput(HIDDEN_INPUT_NAMES[type], serializedData);
-                        break;
-                    }
-                }
-            }
-            this._setLastModified();
-            this._updatePreview();
-        },
-
         _setLastModified: function() {
             this._elements.inputs['jcr:lastModified'].disabled = false;
             this._elements.inputs['jcr:lastModifiedBy'].disabled = false;
@@ -526,14 +655,12 @@
             this._elements.inputs[name].value = value;
         },
 
-        _deserializeTransformation: function(type, data, naturalWidth, naturalHeight) {
-            var value = TRANSFORMATION_HANDLERS[type].deserialize(data, naturalWidth, naturalHeight);
-            value.transformation = type;
-            return value;
+        _getTransformationHandlerNames: function() {
+            return Object.keys(TRANSFORMATION_HANDLERS);
         },
 
         _loadTransformations: function (naturalWidth, naturalHeight) {
-            var handlers = Object.keys(TRANSFORMATION_HANDLERS);
+            var handlers = this._getTransformationHandlerNames();
             var result = Object.create(null);
             for (var i = 0; i < handlers.length; i++) {
                 var type = handlers[i];
@@ -546,7 +673,49 @@
                     }
                 }
             }
-            return result;
+            return this._processTransformations('afterDeserialization', result, naturalWidth, naturalHeight);
+        },
+
+        _deserializeTransformation: function(type, data, naturalWidth, naturalHeight) {
+            var value = TRANSFORMATION_HANDLERS[type].deserialize(data, naturalWidth, naturalHeight);
+            value.transformation = type;
+            return value;
+        },
+
+        _storeTransformations: function(result, naturalWidth, naturalHeight) {
+            var data = result.reduce((a, c) => { a[c.transformation] = c; return a }, Object.create(null));
+            var processedTransformations = this._processTransformations('beforeSerialization', data, naturalWidth, naturalHeight);
+
+            var handlers = this._getTransformationHandlerNames();
+            for (var i = 0; i < handlers.length; i++) {
+                var type = handlers[i];
+                this._setHiddenInput(HIDDEN_INPUT_NAMES[type], '');
+                var transformation = processedTransformations[type];
+                if (transformation) {
+                    var serializedData = TRANSFORMATION_HANDLERS[type].serialize(transformation, naturalWidth, naturalHeight);
+                    this._setHiddenInput(HIDDEN_INPUT_NAMES[type], serializedData);
+                }
+            }
+
+            this._setLastModified();
+            this._updatePreview();
+        },
+
+        _processTransformations(methodName, transformations, naturalWidth, naturalHeight) {
+            var handlers = this._getTransformationHandlerNames();
+            var processedTransformations = $.extend(true, Object.create(null), transformations);
+            for (var i = 0; i < handlers.length; i++) {
+                var type = handlers[i];
+                var fn = TRANSFORMATION_HANDLERS[type][methodName];
+                if (fn && typeof fn === 'function') {
+                    var clonedTransformations = $.extend(true, Object.create(null), transformations);
+                    var newData = fn.bind(TRANSFORMATION_HANDLERS[type])(this, clonedTransformations, naturalWidth, naturalHeight);
+                    if (newData && newData.transformation === type) {
+                        processedTransformations[type] = newData;
+                    }
+                }
+            }
+            return processedTransformations;
         },
 
         _syncName: function() {
@@ -579,72 +748,32 @@
             var plh = this._elements.placeholder;
             var edit = this._elements.edit;
             var clear = this._elements.clear;
-            var val = this.value;
-            if (val) {
-                function parseDate(dateStr) {
-                    return moment(dateStr, 'ddd MMM D YYYY HH:mm:ss [GMT]ZZ', 'en', true)
-                }
+            var assetPath = this.value;
+            if (assetPath) {
 
                 $(img).one('load', e => {
                     var image = e.target;
                     self._updateImageCss(self._loadTransformations(image.naturalWidth, image.naturalHeight));
                 });
-                $.getJSON(`${val}/_jcr_content/renditions.tidy.1.json`, function(json) {
-                    var defaultWebRendition = 'cq5dam.web.1280.1280.jpeg';
-                    // support non-default web rendition sizes; sort if there
-                    // is more than one for predictable results
 
-                    function dimensions(renditionName) {
-                        return renditionName
-                            .replace(/cq5dam\.web\.(\d+\.\d+)\.jpeg/, "$1")
-                            .split('.')
-                            .map(i => parseInt(i, 10));
-                    }
-
-                    var keys = Object.keys(json)
-                        .filter(k => k.startsWith('cq5dam.web.'))
-                        .sort((a, b) => {
-                            // prefer the default web rendition over any custom ones
-                            if (a == defaultWebRendition) {
-                                return -1;
-                            }
-                            if (b == defaultWebRendition) {
-                                return 1;
-                            }
-
-                            var dimA = dimensions(a),
-                                dimB = dimensions(b);
-
-                            // compare x values
-                            if (dimA[0] < dimB[0]) {
-                                return -1;
-                            }
-                            if (dimA[0] > dimB[0]) {
-                                return 1;
-                            }
-
-                            // x values are equal, compare y values
-                            if (dimA[1] < dimB[1]) {
-                                return -1;
-                            }
-                            if (dimA[1] > dimB[1]) {
-                                return 1;
-                            }
-
-                            return 0;
-                        });
-
-                    if (keys.length > 0) {
-                        var key = keys[0];
-                        var date = parseDate(json[key]['jcr:created']);
-                        img.src = `${val}/_jcr_content/renditions/${key}?ch_ck=${date.format('x')}`;
-                    } else {
-                        var date = parseDate(json['jcr:created']);
-                        img.src = `${val}.thumb.319.319.png?ch_ck=${date.format('x')}`;
-                    }
+                var self = this;
+                $.getJSON(`${assetPath}.assetreference.info.json`, function(info) {
+                    self.info = info;
+                    var webRenditions = [...info.renditions].filter(rendition => rendition.name.startsWith('cq5dam.web.'));
+                    self.info.classicUiCropReference = webRenditions.find(r => r.isClassicUiCropReference);
+                    var webRendition = webRenditions
+                        // prefer 'cq5dam.web.1280.1280.' web rendition, but take any other as well
+                        // sorted by dimensions, largest dimensions first
+                        .sort(chainedSort(
+                            sortAlwaysFirst(r => r.name.startsWith('cq5dam.web.1280.1280.')),
+                            sortBy(r => r.width * -1 + r.height * -1)
+                        ))
+                        .shift();
+                    // use web rendition and fall back to original
+                    img.src = webRendition ? webRendition.url : info.url;
                 });
-                img.alt = val;
-                img.title = val;
+                img.alt = assetPath;
+                img.title = assetPath;
                 img.hidden = false;
                 plh.hidden = true;
                 edit.hidden = false;
@@ -662,22 +791,6 @@
         },
 
         _updateImageCss: function(transformations) {
-            function resizeRatio(container, content) {
-                return 1 / Math.max(
-                    content.w / container.w,
-                    content.h / container.h,
-                    1.0
-                );
-            }
-            
-            function scale(ratio, values, keys) {
-                var result = {};
-                keys.forEach(key => {
-                    result[key] = values[key] * ratio;
-                });
-                return result;
-            }
-            
             var img = this._elements.img, // assume that img is web rendition @ 1280x1280
                 $img = $(img).removeAttr('style'),
                 $containingPanel = $img.closest('coral-panel'),
@@ -710,6 +823,8 @@
                 });
 
                 var ratio = resizeRatio(availableSize, swapDimensions ? { w: crop.height, h: crop.width } : { w: crop.width, h: crop.height });
+                ratio = Math.min(ratio, 1.0); // only scale down
+
                 scaledBinary = scale(ratio, binarySize, 'w h'.split(' '));
                 var scaledCrop = scale(ratio, crop, 'left top right bottom width height'.split(' '));
 
@@ -762,7 +877,6 @@
         },
 
         _startImageEditor: function() {
-
             var self = this;
             var canvas = $('body').children('.distilledcode-imageeditor-canvas');
             if (canvas.length === 0) {
@@ -785,7 +899,7 @@
             var editorConfig = this._postProcessPluginConfig($(this).data('image-editor-config') || {})
 
             $('<img>', {
-                src: editorConfig.referenceImagePath || this._elements.img.src,
+                src: this._elements.img.src,
                 alt: val,
                 title: val
             })
