@@ -20,7 +20,7 @@
     <parent>
         <groupId>net.distilledcode.aem</groupId>
         <artifactId>aem-touch-ui-support-parent</artifactId>
-        <version>0.1.9-SNAPSHOT</version>
+        <version>0.1.10</version>
         <relativePath>parent/pom.xml</relativePath>
     </parent>
 
@@ -38,7 +38,7 @@
         <connection>scm:git:https://github.com/code-distillery/aem-touch-ui-support.git</connection>
         <developerConnection>scm:git:https://github.com/code-distillery/aem-touch-ui-support.git</developerConnection>
         <url>https://github.com/code-distillery/aem-touch-ui-support</url>
-        <tag>HEAD</tag>
+        <tag>aem-touch-ui-support-0.1.10</tag>
     </scm>
 
     <properties>
