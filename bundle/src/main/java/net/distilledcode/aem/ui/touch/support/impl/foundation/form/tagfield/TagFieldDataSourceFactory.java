@@ -19,7 +19,7 @@ import com.adobe.granite.ui.components.ExpressionHelper;
 import com.day.cq.tagging.Tag;
 import com.day.cq.tagging.TagManager;
 import net.distilledcode.aem.ui.touch.support.spi.foundation.form.tagfield.TagNamespaceProvider;
-import net.distilledcode.aem.ui.touch.support.spi.granite.datasource.DataSourceFactory;
+import net.distilledcode.aem.ui.touch.support.spi.granite.ui.datasource.DataSourceFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;

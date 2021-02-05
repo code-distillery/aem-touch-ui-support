@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package net.distilledcode.aem.ui.touch.support.spi.granite.datasource;
+package net.distilledcode.aem.ui.touch.support.spi.granite.ui.datasource;
 
 import com.adobe.granite.ui.components.ExpressionHelper;
 import com.adobe.granite.ui.components.ds.AbstractDataSource;
@@ -30,15 +30,13 @@ import java.util.Optional;
 
 /**
  * {@code DataSourceFactory} provide a convenient way to create custom {@link DataSource}s. A
- * {@code DataSourceFactory} must be registered with a property {@code datasource.resourceType}.
+ * {@code DataSourceFactory} must be registered with a property {@code datasource.resourceTypes}.
  * {@code DataSource}s may then be used by creating a "datasource" child node in UI elements,
- * referencing the resourceType using the sling:resourceType property.
+ * referencing a resourceType using the sling:resourceType property.
  * <br>
  * The {@code DataSourceFactory} is provided with the current {@code SlingHttpServletRequest},
  * the "datasource" child of the current resource and an {@link ExpressionHelper} instance that
  * allow expressions in property values to be evaluated.
- * <br>
- * Often it is easiest to
  * <br>
  * Furthermore, details of Granite {@code DataSource}s like registering a {@code Servlet} or setting
  * a request attribute are abstracted away and need not be taken care of by implementations of

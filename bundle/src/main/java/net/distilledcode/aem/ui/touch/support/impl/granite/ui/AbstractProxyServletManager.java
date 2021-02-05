@@ -13,23 +13,15 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package net.distilledcode.aem.ui.touch.support.impl.granite.datasource;
+package net.distilledcode.aem.ui.touch.support.impl.granite.ui;
 
 import com.adobe.granite.ui.components.ExpressionResolver;
-import net.distilledcode.aem.ui.touch.support.spi.granite.datasource.DataSourceFactory;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,52 +33,64 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-@Component
-public class DataSourcesManager {
+public abstract class AbstractProxyServletManager<T> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DataSourcesManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractProxyServletManager.class);
 
-    private final Map<ServiceReference<DataSourceFactory>, ServletRegistration> registrations = new ConcurrentHashMap<>();
+    private final Map<ServiceReference<T>, ServletRegistration> registrations = new ConcurrentHashMap<>();
 
-    private final Set<ServiceReference<DataSourceFactory>> earlyDataSourceFactories = new CopyOnWriteArraySet<>();
-
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
-    private ExpressionResolver expressionResolver;
+    private final Set<ServiceReference<T>> earlyFactories = new CopyOnWriteArraySet<>();
 
     private volatile boolean active;
 
-    @Activate
-    private void activate() {
-        this.active = true;
-        registerEarlyDataSourceFactories();
+    private ExpressionResolver expressionResolver;
+
+    private final ServletFactory<T> servletFactory;
+
+    private final String resourceTypesProperty;
+
+    private final String prefixProperty;
+
+    public AbstractProxyServletManager(ServletFactory<T> servletFactory, String resourceTypesProperty, String prefixProperty) {
+        this.servletFactory = servletFactory;
+        this.resourceTypesProperty = resourceTypesProperty;
+        this.prefixProperty = prefixProperty;
     }
 
-    @Deactivate
-    private void deactivate() {
+    protected abstract void activate();
+
+    protected final void activate(ExpressionResolver expressionResolver) {
+        this.expressionResolver = expressionResolver;
+        this.active = true;
+        registerEarlyFactories();
+    }
+
+    protected void deactivate() {
         this.active = false;
-        earlyDataSourceFactories.clear();
+        earlyFactories.clear();
 
         if (!registrations.isEmpty()) {
-            LOG.error("Remaining registrations on deactivate: {}", registrations);
+            LOG.warn("Remaining registrations on deactivate (will be unregistered): {}", registrations);
+            registrations.values().forEach(ServletRegistration::unregister);
+            registrations.clear();
         }
     }
 
-    @Reference(cardinality = ReferenceCardinality.AT_LEAST_ONE, policy = ReferencePolicy.DYNAMIC)
-    private void bindDataSourceFactory(@NotNull final ServiceReference<DataSourceFactory> reference) {
+    protected void bindFactory(@NotNull final ServiceReference<T> reference) {
         if (!isActive()) {
-            earlyDataSourceFactories.add(reference);
+            earlyFactories.add(reference);
             return;
         }
 
-        String[] resourceTypes = PropertiesUtil.toStringArray(reference.getProperty(DataSourceFactory.DATASOURCE_RESOURCE_TYPES));
-        String prefix = PropertiesUtil.toString(reference.getProperty(DataSourceFactory.DATASOURCE_PREFIX), null);
+        String[] resourceTypes = PropertiesUtil.toStringArray(reference.getProperty(resourceTypesProperty));
+        String prefix = PropertiesUtil.toString(reference.getProperty(prefixProperty), null);
         if (resourceTypes.length == 0) {
             LOG.warn("Skipping DataSourceFactory without '{}' property: {}",
-                    DataSourceFactory.DATASOURCE_RESOURCE_TYPES, reference);
+                    resourceTypes, reference);
             return;
         }
 
-        ServletRegistration reg = new ServletRegistration(reference, resourceTypes, prefix, expressionResolver);
+        ServletRegistration reg = new ServletRegistration(reference, resourceTypes, prefix);
         ServletRegistration oldRegistration = registrations.put(reference, reg);
         if (oldRegistration != null) {
             LOG.info("Unregistered previously registered servlet for {}", oldRegistration);
@@ -94,9 +98,9 @@ public class DataSourcesManager {
         }
     }
 
-    private void unbindDataSourceFactory(@NotNull final ServiceReference<DataSourceFactory> reference) {
+    protected void unbindFactory(@NotNull final ServiceReference<T> reference) {
         // in case no servlet was registered yet
-        earlyDataSourceFactories.remove(reference);
+        earlyFactories.remove(reference);
 
         final ServletRegistration registration = registrations.remove(reference);
         if (registration != null) {
@@ -109,40 +113,41 @@ public class DataSourcesManager {
         return active;
     }
 
-    private void registerEarlyDataSourceFactories() {
-        final Set<ServiceReference<DataSourceFactory>> copiesToBeRegistered = new HashSet<>(earlyDataSourceFactories);
-        earlyDataSourceFactories.clear();
+    private void registerEarlyFactories() {
+        final Set<ServiceReference<T>> copiesToBeRegistered = new HashSet<>(earlyFactories);
+        earlyFactories.clear();
 
-        for (ServiceReference<DataSourceFactory> ref : copiesToBeRegistered) {
+        for (ServiceReference<T> ref : copiesToBeRegistered) {
             if (isActive()) {
-                bindDataSourceFactory(ref);
+                bindFactory(ref);
             } else {
                 break;
             }
         }
     }
 
-    private static class ServletRegistration {
+    private class ServletRegistration {
 
         private final BundleContext bundleContext;
 
-        private final ServiceReference<DataSourceFactory> factoryReference;
+        private final ServiceReference<T> factoryReference;
 
         private final ServiceRegistration<Servlet> servletRegistration;
 
-        ServletRegistration(@NotNull ServiceReference<DataSourceFactory> factoryReference,
+        ServletRegistration(@NotNull ServiceReference<T> factoryReference,
                             @NotNull String[] resourceTypes,
-                            @Nullable String prefix,
-                            @NotNull ExpressionResolver expressionResolver) {
+                            @Nullable String prefix) {
             this.factoryReference = factoryReference;
             this.bundleContext = factoryReference.getBundle().getBundleContext();
 
-            DataSourceFactory factory = bundleContext.getService(factoryReference);
-            DataSourceServlet dataSourceServlet = new DataSourceServlet(factory, expressionResolver);
+            T factory = bundleContext.getService(factoryReference);
+            Servlet dataSourceServlet = servletFactory.createServlet(factory, expressionResolver);
             Hashtable<String, Object> servletProps = new Hashtable<>();
             servletProps.put("sling.servlet.resourceTypes", resourceTypes);
             servletProps.put("sling.servlet.prefix", prefix == null ? "0" : prefix);
-            servletProps.put("service.description", "Servlet registered by DataSourcesManager on behalf of " + factory.getClass().getName());
+            servletProps.put("service.description",
+                    "Servlet registered by " + AbstractProxyServletManager.this.getClass().getSimpleName() +
+                            " on behalf of " + factory.getClass().getName());
             this.servletRegistration = bundleContext.registerService(Servlet.class, dataSourceServlet, servletProps);
         }
 
@@ -150,5 +155,9 @@ public class DataSourcesManager {
             servletRegistration.unregister();
             bundleContext.ungetService(factoryReference);
         }
+    }
+
+    protected interface ServletFactory<FACTORY> {
+        Servlet createServlet(FACTORY factory, ExpressionResolver expressionResolver);
     }
 }

@@ -19,7 +19,7 @@ import com.adobe.granite.ui.components.ExpressionHelper;
 import com.adobe.granite.ui.components.ds.ValueMapResource;
 import net.distilledcode.aem.ui.touch.support.impl.requestprocessing.SyntheticHttpServletRequest;
 import net.distilledcode.aem.ui.touch.support.impl.requestprocessing.SyntheticHttpServletResponse;
-import net.distilledcode.aem.ui.touch.support.spi.granite.datasource.DataSourceFactory;
+import net.distilledcode.aem.ui.touch.support.spi.granite.ui.datasource.DataSourceFactory;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.Resource;

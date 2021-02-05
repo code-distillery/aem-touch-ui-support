@@ -14,6 +14,6 @@
  *  limitations under the License.
  */
 @Version("1.0.0")
-package net.distilledcode.aem.ui.touch.support.spi.granite.datasource;
+package net.distilledcode.aem.ui.touch.support.spi.granite.ui.rendercondition;
 
 import org.osgi.annotation.versioning.Version;

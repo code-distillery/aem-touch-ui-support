@@ -18,7 +18,7 @@ package net.distilledcode.aem.ui.touch.support.impl.ui;
 import com.adobe.granite.ui.components.ExpressionHelper;
 import net.distilledcode.aem.ui.touch.support.api.ui.DialogUtil;
 import net.distilledcode.aem.ui.touch.support.api.ui.consoles.ConversionConfig;
-import net.distilledcode.aem.ui.touch.support.spi.granite.datasource.DataSourceFactory;
+import net.distilledcode.aem.ui.touch.support.spi.granite.ui.datasource.DataSourceFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;

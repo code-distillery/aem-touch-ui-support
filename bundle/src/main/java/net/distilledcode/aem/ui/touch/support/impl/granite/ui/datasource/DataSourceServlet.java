@@ -13,23 +13,19 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package net.distilledcode.aem.ui.touch.support.impl.granite.datasource;
+package net.distilledcode.aem.ui.touch.support.impl.granite.ui.datasource;
 
 import com.adobe.granite.ui.components.ExpressionHelper;
 import com.adobe.granite.ui.components.ExpressionResolver;
 import com.adobe.granite.ui.components.ds.DataSource;
-import net.distilledcode.aem.ui.touch.support.spi.granite.datasource.DataSourceFactory;
+import net.distilledcode.aem.ui.touch.support.spi.granite.ui.datasource.DataSourceFactory;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class DataSourceServlet extends SlingSafeMethodsServlet {
-
-    private static final Logger LOG = LoggerFactory.getLogger(DataSourceServlet.class);
 
     private final DataSourceFactory factory;
 
