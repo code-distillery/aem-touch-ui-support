@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-;(function(window, $, Coral) {
+;(function(window, document, $, Coral) {
     'use strict';
 
     function byProperty(name, value) {
@@ -30,23 +30,27 @@
         return !!config && config.handler;
     }
 
-    Coral.commons.ready(function() {
-        $('[data-distilledcode-dynamic-default-value]').each(function(idx, el) {
-            var $el = $(el);
-            var field = $el.adaptTo('foundation-field');
-            if (!field.getValue()) {
-                var funcName = $el.attr('data-distilledcode-dynamic-default-value');
-                if (!!funcName && !!getDynamicDefaultFunction(funcName)) {
-                    var func = getDynamicDefaultFunction(funcName);
-                    var defaultValue = func($el);
-                    if (defaultValue !== undefined) {
-                        field.setValue(defaultValue);
+    function initializeFields(event) {
+        Coral.commons.ready(event.target || document, function(container) {
+            $(container).find('[data-distilledcode-dynamic-default-value]').each(function(idx, el) {
+                var $el = $(el);
+                var field = $el.adaptTo('foundation-field');
+                if (!field.getValue()) {
+                    var funcName = $el.attr('data-distilledcode-dynamic-default-value');
+                    if (!!funcName && !!getDynamicDefaultFunction(funcName)) {
+                        var func = getDynamicDefaultFunction(funcName);
+                        var defaultValue = func($el);
+                        if (defaultValue !== undefined) {
+                            field.setValue(defaultValue);
+                        }
+                    } else {
+                        console.warn('Could not find dynamic default value function named', funcName, 'for', el);
                     }
-                } else {
-                    console.warn('Could not find dynamic default value function named', funcName, 'for', el);
                 }
-            }
+            });
         });
-    });
-})(window, jQuery, Coral);
+    }
+
+    $(document).on('foundation-contentloaded', initializeFields);
+})(window, document, jQuery, Coral);
 
