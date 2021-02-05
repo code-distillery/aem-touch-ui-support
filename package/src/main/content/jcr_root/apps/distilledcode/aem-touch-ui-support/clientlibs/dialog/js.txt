@@ -23,6 +23,7 @@ validators-cq5-classic-ui-compat.js
 assetreferencefield.js
 distilledcode-drilldown.js
 distilledcode-derived-field.js
+distilledcode-dynamic-hidden-param.js
 dynamic-default-values.js
 dynamic-default-values-now.js
 allow-overriding-default-resource-type-in-dialog.js
