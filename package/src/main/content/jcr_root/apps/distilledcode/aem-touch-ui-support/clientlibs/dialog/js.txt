@@ -16,6 +16,7 @@
 coral-tooltip-usability.js
 colorinput-show-hex-value.js
 conditional-coral-tabs.js
+confirm-submit.js
 distilledcode-mode-change.js
 rte-show-disabled-toolbar.js
 numberinput-rounding-precision.js
