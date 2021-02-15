@@ -47,14 +47,14 @@
                     [{
                         text: noLabel,
                         handler: function() {
-                            loadingMask.impl.show();
+                            loadingMaskCtrl.show();
                             deferred.reject();
                         }
                     }, {
                         text: yesLabel,
                         primary: true,
                         handler: function() {
-                            loadingMask.impl.show();
+                            loadingMaskCtrl.show();
                             deferred.resolve();
                         }
                     }]);
