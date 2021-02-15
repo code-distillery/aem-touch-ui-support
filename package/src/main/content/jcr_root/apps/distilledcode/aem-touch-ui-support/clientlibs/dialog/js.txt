@@ -13,6 +13,7 @@
 # limitations under the License.
 #base=js
 
+fix-allowed-component-computation.js
 coral-tooltip-usability.js
 colorinput-show-hex-value.js
 conditional-coral-tabs.js
