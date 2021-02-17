@@ -96,7 +96,7 @@
 
     // validationFn must return a Thenable
     function registerAsyncValidator(name, validationFn, defaultErrorMsg) {
-        var i18nDefaultErrorMsg = Granite.I18n.get(defaultErrorMsg);
+        var i18nDefaultErrorMsg = Granite.I18n.getVar(defaultErrorMsg);
         var fieldSelector = "[data-foundation-validation~='" + name + "']";
         registry.register('foundation.validation.validator', {
             selector: fieldSelector,
@@ -110,7 +110,7 @@
                 var msgName = name.split('.').pop();
                 var errorMsg = $field.attr('data-distilledcode-validation-message-' + msgName)
                     || $field.attr('data-distilledcode-validation-message');
-                var i18nErrorMsg = !!errorMsg ? Granite.I18n.get(errorMsg) : i18nDefaultErrorMsg;
+                var i18nErrorMsg = !!errorMsg ? Granite.I18n.getVar(errorMsg) : i18nDefaultErrorMsg;
 
                 var promise = getCachedPromise($field, value);
                 if (!promise) {
@@ -124,7 +124,7 @@
                     return value;
                 }, function isInvalid(errorMsg) {
                     if (value === getValue(field)) { // in case the value has changed
-                        var msg = !!errorMsg ? Granite.I18n.get(errorMsg) : i18nErrorMsg;
+                        var msg = !!errorMsg ? Granite.I18n.getVar(errorMsg) : i18nErrorMsg;
                         var validation = $field.adaptTo('foundation-validation');
                         validation.setCustomValidity(msg);
                         validation.updateUI();
@@ -215,14 +215,14 @@
     }
 
     function registerValidator(name, validationFn, defaultErrorMsg) {
-        var i18nDefaultErrorMsg = Granite.I18n.get(defaultErrorMsg);
+        var i18nDefaultErrorMsg = Granite.I18n.getVar(defaultErrorMsg);
         registry.register('foundation.validation.validator', {
             selector: "[data-foundation-validation~='" + name + "']",
             validate: function(field) {
                 var msgName = name.split('.').pop();
                 var errorMsg = $(field).attr('data-distilledcode-validation-message-' + msgName)
                     || $(field).attr('data-distilledcode-validation-message');
-                var i18nErrorMsg = !!errorMsg ? Granite.I18n.get(errorMsg) : i18nDefaultErrorMsg;
+                var i18nErrorMsg = !!errorMsg ? Granite.I18n.getVar(errorMsg) : i18nDefaultErrorMsg;
                 var value = getValue(field);
                 return value === '' || validationFn(field, value) ? undefined : i18nErrorMsg;
             }

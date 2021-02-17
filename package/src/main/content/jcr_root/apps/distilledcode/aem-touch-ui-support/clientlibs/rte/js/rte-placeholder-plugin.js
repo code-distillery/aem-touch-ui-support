@@ -136,7 +136,7 @@
             for (var name in rawPlaceholders) {
                 if (rawPlaceholders[name].placeholder != null) {
                     var def = rawPlaceholders[name];
-                    var label = Granite.I18n.get(def.label || def.placeholder)
+                    var label = Granite.I18n.getVar(def.label || def.placeholder)
                     placeholderToLabel[def.placeholder] = label;
                     placeholders.push({
                         label: label,

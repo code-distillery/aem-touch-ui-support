@@ -29,7 +29,6 @@
             var deferred =$.Deferred();
             if (submitter) {
                 var $submitter = $(submitter);
-                var msg = $submitter.attr('data-distilledcode-confirm-message');
 
                 // temporarily hide foundation-form loading mask, as it covers the prompt
                 var loadingMask = $(form).data('foundationForm.internal.currentLoadingMask');
@@ -37,12 +36,13 @@
                 var loadingMaskCtrl = loadingMask && loadingMask.impl ? loadingMask.impl : { hide: noop, show: noop };
                 loadingMaskCtrl.hide();
 
-                var title = Granite.I18n.get($submitter.attr('data-distilledcode-confirm-title') || $submitter.text());
-                var yesLabel = Granite.I18n.get($submitter.attr('data-distilledcode-confirm-label-yes') || 'Yes');
-                var noLabel = Granite.I18n.get($submitter.attr('data-distilledcode-confirm-label-no') || 'No');
+                var title = Granite.I18n.getVar($submitter.attr('data-distilledcode-confirm-title') || $submitter.text());
+                var msg = Granite.I18n.getVar($submitter.attr('data-distilledcode-confirm-message'));
+                var yesLabel = Granite.I18n.getVar($submitter.attr('data-distilledcode-confirm-label-yes') || 'Yes');
+                var noLabel = Granite.I18n.getVar($submitter.attr('data-distilledcode-confirm-label-no') || 'No');
 
                 ui.prompt(title,
-                    Granite.I18n.get(msg),
+                    msg,
                     'default',
                     [{
                         text: noLabel,
