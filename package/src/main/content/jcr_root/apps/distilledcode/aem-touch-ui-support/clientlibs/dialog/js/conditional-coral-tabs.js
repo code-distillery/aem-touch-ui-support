@@ -36,7 +36,7 @@
         return value;
     }
 
-    function toggleForSwitcher(switcher, doSelect) {
+    function toggleForSwitcher(switcher) {
         var container = $(switcher).closest('coral-tabview.distilledcode-conditional-tabs-container');
         if (container.length === 0) {
             return;
@@ -51,10 +51,8 @@
             var panel = panels[i];
             if (value.length > 0 && $(panel).has('[data-distilledcode-conditional-tabs-value=' + value + ']').length > 0) {
                 tab.disabled = false;
-                tab.selected = doSelect ? true : tab.selected;
             } else if ($(panel).has('[data-distilledcode-conditional-tabs-value]').length > 0) {
                 tab.disabled = true;
-                tab.selected = false;
             }
         }
     }
@@ -98,19 +96,18 @@
         $('coral-tabview.distilledcode-conditional-tabs-container > coral-tablist > coral-tab')
             .each((idx, tab) => observer.observe(tab, { attributes: true, attributeFilter: ['disabled'] }));
 
-        var selectors = 'coral-select.distilledcode-tab-switcher:not([multiple])'
-                        + ', .coral-RadioGroup.distilledcode-tab-switcher'
+        var selectors = 'coral-select.distilledcode-conditional-tab-switcher:not([multiple])'
+                        + ', .coral-RadioGroup.distilledcode-conditional-tab-switcher'
                         // TODO: test with coral-buttongroup
-                        // + ', coral-buttongroup.distilledcode-tab-switcher[selectionmode="single"]'
+                        // + ', coral-buttongroup.distilledcode-conditional-tab-switcher[selectionmode="single"]'
                         ;
-        $(document).on('change', selectors, e => toggleForSwitcher(e.target, true));
-        $(selectors).each((idx, switcher) => toggleForSwitcher(switcher, false));
-
+        $(document).on('change', selectors, e => toggleForSwitcher(e.target));
+        Coral.commons.ready(_ => $(selectors).each((idx, switcher) => toggleForSwitcher(switcher)));
     }
 
     // initialize state for both dynamically loaded and static dialogs
     $(document).on('foundation-contentloaded', 'coral-dialog', initialize);
     $(initialize);
 
-})(document, jQuery);
+})(document, jQuery, Coral);
 
