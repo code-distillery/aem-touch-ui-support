@@ -17,45 +17,74 @@
     'use strict';
 
     var registry = $(window).adaptTo('foundation-registry');
+
+    registry.register('foundation.adapters', {
+        type: 'distilledcode-reloadable',
+        selector: 'select[data-distilledcode-options-url]',
+        adapter: function() {
+            return {
+                updateOptions: function updateOptions(jsonOptions) {
+                    var select = this;
+                    var oldValue = select.value;
+                    $(select).empty();
+                    if (Array.isArray(jsonOptions)) {
+                        var options = document.createDocumentFragment();
+                        jsonOptions.forEach(function(option) {
+                            var optEl = document.createElement('option');
+                            optEl.innerText = option.text;
+                            optEl.value = option.value;
+                            optEl.selected = oldValue === option.value;
+                            options.appendChild(optEl);
+                        });
+                        select.appendChild(options);
+                    }
+                }
+            };
+        }
+    });
+
     registry.register('foundation.adapters', {
         type: 'distilledcode-reloadable',
         selector: 'coral-select[data-distilledcode-options-url]',
-        adapter: function(select) {
+        adapter: function() {
             return {
-                reload: function(values) {
-                    var urlTemplate = select.dataset.distilledcodeOptionsUrl;
-                    var url = URITemplate.expand(urlTemplate, values);
-                    return $.ajax({
-                        url: url,
-                        cache: false
-                    }).then(function(jsonOptions) {
-                        var oldValue = select.value;
-                        select.items.clear();
-                        if (Array.isArray(jsonOptions)) {
-                            jsonOptions.forEach(function(option) {
-                                select.items.add({
-                                    value: option.value,
-                                    selected: oldValue === option.value,
-                                    content: {
-                                      textContent: option.text
-                                    }
-                                });
+                updateOptions: function updateOptions(jsonOptions) {
+                    var select = this;
+                    var oldValue = select.value;
+                    select.items.clear();
+                    if (Array.isArray(jsonOptions)) {
+                        jsonOptions.forEach(function(option) {
+                            select.items.add({
+                                value: option.value,
+                                selected: oldValue === option.value,
+                                content: {
+                                  textContent: option.text
+                                }
                             });
-                        }
-                    });
+                        });
+                    }
                 }
             };
         }
     });
 
     function reload(el) {
-        var reloadable = $(el).adaptTo('distilledcode-reloadable');
+        var $el = $(el);
+        var reloadable = $el.adaptTo('distilledcode-reloadable');
         if (reloadable) {
-            var drilldownEls = $.makeArray(el.closest('form').querySelectorAll('[data-distilledcode-drilldown-id]'))
+            var drilldownEls = [...el.closest('form').querySelectorAll('[data-distilledcode-drilldown-id]')];
             var values = collectValues(drilldownEls);
-            reloadable.reload(values).then(function() {
-                el.trigger('distilledcode-drilldown:reload');
-            });
+            var urlTemplate = el.dataset.distilledcodeOptionsUrl;
+            var url = URITemplate.expand(urlTemplate, values);
+            if ($el.data('distilledcode-reloadable-internal-current-options-url') !== url) {
+                $el.data('distilledcode-reloadable-internal-current-options-url', url);
+                return $.ajax({
+                    url: url,
+                    cache: false
+                })
+                .then(reloadable.updateOptions.bind(el))
+                .then(_ => $(el).trigger('distilledcode-drilldown:reloaded'));
+            }
         } else {
             throw 'Cannot adapt ' + el + ' to \'distilledcode-reloadable\'';
         }
@@ -73,43 +102,37 @@
         );
     }
 
-    function updateFn(el) {
-        return function(event) {
-            reload(el);
-        };
+    function updateDependants(event) {
+        event.stopPropagation();
+        var dependants = findDependants(event.target);
+        dependants.forEach(dependant => reload(dependant));
+    }
+
+    function findDependants(el) {
+        var id = el.dataset.distilledcodeDrilldownId;
+        return document.querySelectorAll('[data-distilledcode-drilldown-dependency~=' + id + ']');
     }
 
     function initializeDependencies(form) {
-        var drilldownElementsById = $.makeArray(form.querySelectorAll('[data-distilledcode-drilldown-id]')).reduce(
-            function(acc, el) {
-                return acc.set(el.dataset.distilledcodeDrilldownId, el);
-            },
-            new Map
-        );
-
-        form.querySelectorAll('[data-distilledcode-drilldown-dependency]').forEach(function(dependant) {
-            var rawDependency = dependant.dataset.distilledcodeDrilldownDependency;
-            if (!!rawDependency) {
-                var dependencies = rawDependency.split(',');
-                dependencies.forEach(function(dep) {
-                    var dependencyEl = drilldownElementsById.get(dep.trim());
-                    $(dependencyEl).on(
-                        'change distilledcode-drilldown:reload',
-                        Granite.UI.Foundation.Utils.debounce(updateFn(dependant), 50));
-                });
-            }
-        });
+        form
+            .querySelectorAll('[data-distilledcode-drilldown-id]')
+            .forEach(el => {
+                var $el = $(el);
+                if (!$el.data('distilledcode-drilldown-initialized')) {
+                    $el
+                        .data('distilledcode-drilldown-initialized', true)
+                        .on('change distilledcode-drilldown:reloaded', updateDependants);
+                }
+            });
     }
 
     function loadSelectOptions(form) {
         form
             .querySelectorAll('[data-distilledcode-drilldown-id]:not([data-distilledcode-drilldown-dependency])')
-            .forEach(function(el) {
-                updateFn(el)();
-            });
+            .forEach(el => reload(el));
     }
 
-    function initialize() {
+    function initialize(event) {
         this.querySelectorAll('form').forEach(function(form) {
             initializeDependencies(form);
             loadSelectOptions(form);
