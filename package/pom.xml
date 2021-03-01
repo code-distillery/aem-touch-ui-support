@@ -20,7 +20,7 @@
     <parent>
         <groupId>net.distilledcode.aem</groupId>
         <artifactId>aem-touch-ui-support-parent</artifactId>
-        <version>0.1.18</version>
+        <version>0.1.19-SNAPSHOT</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
