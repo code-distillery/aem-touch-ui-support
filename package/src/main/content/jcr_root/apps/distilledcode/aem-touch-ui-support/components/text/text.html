@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */-->
-<div data-sly-use.cmp="net.distilledcode.aem.ui.touch.support.api.ui.granite.Component"
+<div data-sly-use.cmp="net.distilledcode.aem.ui.touch.support.api.ui.granite.Text"
      data-sly-test="${cmp.renderConditionSatisfied}"
-     data-sly-element="${properties.tagName}"
+     data-sly-element="${cmp.tagName}"
      data-sly-attribute="${cmp.attributes}">
-    ${properties.text @ context = (properties.allowHtml == true ? 'html' : 'text')}
+    ${cmp.text @ i18n, context = (cmp.allowHtml ? 'html' : 'text')}
 </div>

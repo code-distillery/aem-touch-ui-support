@@ -13,7 +13,28 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-@Version("0.4.0")
 package net.distilledcode.aem.ui.touch.support.api.ui.granite;
 
-import org.osgi.annotation.versioning.Version;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.models.annotations.Model;
+import org.jetbrains.annotations.NotNull;
+
+@Model(adaptables = SlingHttpServletRequest.class)
+public class Text extends Component {
+
+    public Text(@NotNull SlingHttpServletRequest request) {
+        super(request);
+    }
+
+    public String getText() {
+        return properties.get("text", String.class);
+    }
+
+    public boolean allowHtml() {
+        return properties.get("allowHtml", false);
+    }
+
+    public String getTagName() {
+        return properties.get("tagName", String.class);
+    }
+}
