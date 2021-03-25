@@ -27,12 +27,12 @@ import org.osgi.annotation.versioning.ProviderType;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -68,10 +68,12 @@ public class AssetReferenceField extends GenericStringField {
 
     private void setEditorConfiguration(Map<String, Object> attributes) {
         if (isImageEditorEnabled()) {
-            Optional.ofNullable(this.resource.getChild("cropConfig"))
+            final JsonObject config = Optional.ofNullable(this.resource.getChild("cropConfig"))
                     .map(this::toJson)
-                    .map(cropConfig -> Json.createObjectBuilder().add("crop", cropConfig).build())
-                    .ifPresent(config -> attributes.put("data-image-editor-config", config.toString()));
+                    .map(cropConfig -> Json.createObjectBuilder().add("crop", cropConfig))
+                    .orElseGet(Json::createObjectBuilder)
+                    .build();
+            attributes.put("data-image-editor-config", config.toString());
         }
     }
 
@@ -114,21 +116,21 @@ public class AssetReferenceField extends GenericStringField {
                 builder.add(name, arrayBuilder);
 
             } else {
-                if (clazz == int.class || clazz == Integer.class) {
+                if (rawValue instanceof Integer) {
                     builder.add(name, (int) rawValue);
-                } else if (clazz == long.class || clazz == Long.class) {
+                } else if (rawValue instanceof Long) {
                     builder.add(name, (long) rawValue);
-                } else if (clazz == double.class || clazz == Double.class) {
+                } else if (rawValue instanceof Double) {
                     builder.add(name, (double) rawValue);
-                } else if (clazz == String.class) {
+                } else if (rawValue instanceof String) {
                     builder.add(name, (String) rawValue);
-                } else if (clazz == boolean.class || clazz == Boolean.class) {
+                } else if (rawValue instanceof Boolean) {
                     builder.add(name, (boolean) rawValue);
-                } else if (clazz == BigDecimal.class) {
+                } else if (rawValue instanceof BigDecimal) {
                     builder.add(name, (BigDecimal) rawValue);
-                } else if (clazz == BigInteger.class) {
+                } else if (rawValue instanceof BigInteger) {
                     builder.add(name, (BigInteger) rawValue);
-                } else if (clazz == Calendar.class) {
+                } else if (rawValue instanceof Calendar) {
                     builder.add(name, ISO8601.format((Calendar) rawValue));
                 } else {
                     throw new UnsupportedOperationException("Property " + name + " is of unsupported type " + clazz.getName());

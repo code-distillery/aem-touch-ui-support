@@ -157,7 +157,7 @@
                     if (invertRatio) {
                         ratio = 1 / ratio;
                     }
-                    var scaled = scale(ratio, transformations['crop'], 'left top width height'.split(' '));
+                    var scaled = scale(ratio, crop, 'left top width height'.split(' '));
                     scaled.transformation = 'crop';
                     return scaled;
                 }
@@ -771,13 +771,13 @@
                         .shift();
                     // use web rendition and fall back to original
                     img.src = webRendition ? webRendition.url : info.url;
+                    img.alt = assetPath;
+                    img.title = assetPath;
+                    img.hidden = false;
+                    plh.hidden = true;
+                    edit.hidden = !self.info.mimeType.startsWith('image/');
+                    clear.hidden = false;
                 });
-                img.alt = assetPath;
-                img.title = assetPath;
-                img.hidden = false;
-                plh.hidden = true;
-                edit.hidden = false;
-                clear.hidden = false;
             } else {
                 img.src = null;
                 img.alt = null;

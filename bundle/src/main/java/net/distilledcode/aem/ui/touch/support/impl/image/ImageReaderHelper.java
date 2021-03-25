@@ -24,6 +24,7 @@ import java.awt.Dimension;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class ImageReaderHelper {
@@ -46,15 +47,14 @@ public class ImageReaderHelper {
         return new Dimension(reader.getWidth(0), reader.getHeight(0));
     }
 
-    public <R> R withImageReader(ThrowingFunction<ImageReader, R, IOException> action) throws IOException {
-        try (final InputStream is = imageSupplier.get()) {
-            try (final ImageInputStream imageInputStream = ImageIO.createImageInputStream(is)) {
-                final ImageReader imageReader = getImageReader(imageInputStream);
-                if (imageReader == null) {
-                    throw new IllegalStateException("Image cannot be read, no suitable ImageReader available");
-                }
-                return action.apply(imageReader);
+    public <R> Optional<R> withImageReader(ThrowingFunction<ImageReader, R, IOException> action) throws IOException {
+        try (final ImageInputStream imageInputStream = ImageIO.createImageInputStream(imageSupplier.get())) {
+            final ImageReader imageReader = getImageReader(imageInputStream);
+            if (imageReader != null) {
+                final R result = action.apply(imageReader);
+                return Optional.ofNullable(result);
             }
+            return Optional.empty();
         }
     }
 
@@ -62,6 +62,7 @@ public class ImageReaderHelper {
         final Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
         while (readers.hasNext()) {
             ImageReader reader = readers.next();
+            // TODO: detect and blacklist non conforming implementations automatically on first use
             // skip reader that caches entire image on #getWidth(0), preventing ImageReadParams to take effect
             if (readers.hasNext() && "ch.randelshofer.media.jpeg.CMYKJPEGImageReader".equals(reader.getClass().getName())) {
                 continue;

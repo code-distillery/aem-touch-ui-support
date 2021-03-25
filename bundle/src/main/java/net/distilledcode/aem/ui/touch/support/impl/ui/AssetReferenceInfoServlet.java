@@ -33,9 +33,8 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
 import javax.servlet.Servlet;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
-import java.awt.*;
+import java.awt.Dimension;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.Calendar;
@@ -52,7 +51,7 @@ import java.util.function.Function;
 )
 public class AssetReferenceInfoServlet extends SlingSafeMethodsServlet {
     @Override
-    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
         final ResourceResolver resolver = request.getResourceResolver();
         final Resource assetResource = request.getResource();
         final Resource renditions = assetResource.getChild("jcr:content/renditions");
@@ -66,12 +65,16 @@ public class AssetReferenceInfoServlet extends SlingSafeMethodsServlet {
             return;
         }
 
-        Dimension dimensions = getDimensions(original);
+        final String mimeType = original.getValueMap().get("jcr:content/jcr:mimeType", "");
         final JsonObjectBuilder json = Json.createObjectBuilder()
                 .add("name", assetResource.getName())
                 .add("url", getUrl(resolver::map, assetResource))
-                .add("width", dimensions.width)
-                .add("height", dimensions.height);
+                .add("mimeType", mimeType);
+
+        getDimensions(original).ifPresent(dimension -> {
+            json.add("width", dimension.width)
+                .add("height", dimension.height);
+        });
 
         final JsonArrayBuilder renditionsJson = Json.createArrayBuilder();
         boolean hasSeenWebRendition = false;
@@ -80,17 +83,23 @@ public class AssetReferenceInfoServlet extends SlingSafeMethodsServlet {
             if (Objects.equals(name, "original")) {
                 continue;
             }
-            dimensions = getDimensions(rendition);
-            final JsonObjectBuilder renditionJson = Json.createObjectBuilder()
-                    .add("name", name)
-                    .add("url", getUrl(resolver::map, rendition))
-                    .add("width", dimensions.width)
-                    .add("height", dimensions.height);
-            if (name.startsWith("cq5dam.web.") && !hasSeenWebRendition) {
-                renditionJson.add("isClassicUiCropReference", true);
+
+            final boolean isClassicUiCropReference = name.startsWith("cq5dam.web.") && !hasSeenWebRendition;
+            if (isClassicUiCropReference) {
                 hasSeenWebRendition = true;
             }
-            renditionsJson.add(renditionJson);
+
+            getDimensions(rendition).ifPresent(dimensions -> {
+                final JsonObjectBuilder renditionJson = Json.createObjectBuilder()
+                        .add("name", name)
+                        .add("url", getUrl(resolver::map, rendition))
+                        .add("width", dimensions.width)
+                        .add("height", dimensions.height);
+                if (isClassicUiCropReference) {
+                    renditionJson.add("isClassicUiCropReference", true);
+                }
+                renditionsJson.add(renditionJson);
+            });
         }
 
         final JsonObject jsonObject = json
@@ -115,8 +124,7 @@ public class AssetReferenceInfoServlet extends SlingSafeMethodsServlet {
         return lastDot != -1 ? filename.substring(lastDot + 1) : null;
     }
 
-    @NotNull
-    private static Dimension getDimensions(Resource rendition) throws IOException {
+    private static Optional<Dimension> getDimensions(Resource rendition) throws IOException {
         return ImageReaderHelper
                 .from(() -> ImageReaderHelper.getRenditionInputStream(rendition))
                 .withImageReader(ImageReaderHelper::getImageDimensions);
