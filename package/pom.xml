@@ -106,12 +106,6 @@
             <groupId>javax.servlet</groupId>
             <artifactId>jstl</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.day.jcr.vault</groupId>
-            <artifactId>content-package-maven-plugin</artifactId>
-            <version>0.0.24</version>
-        </dependency>
     </dependencies>
 
 </project>
