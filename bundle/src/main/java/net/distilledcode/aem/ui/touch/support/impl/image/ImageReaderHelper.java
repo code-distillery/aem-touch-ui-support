@@ -16,6 +16,8 @@
 package net.distilledcode.aem.ui.touch.support.impl.image;
 
 import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -39,16 +41,22 @@ public class ImageReaderHelper {
         this.imageSupplier = imageSupplier;
     }
 
-    public static InputStream getRenditionInputStream(final Resource rendition) {
+    @Nullable
+    public static InputStream getRenditionInputStream(@NotNull final Resource rendition) {
         return rendition.adaptTo(InputStream.class);
     }
 
-    public static Dimension getImageDimensions(final ImageReader reader) throws IOException {
+    @NotNull
+    public static Dimension getImageDimensions(@NotNull final ImageReader reader) throws IOException {
         return new Dimension(reader.getWidth(0), reader.getHeight(0));
     }
 
     public <R> Optional<R> withImageReader(ThrowingFunction<ImageReader, R, IOException> action) throws IOException {
-        try (final ImageInputStream imageInputStream = ImageIO.createImageInputStream(imageSupplier.get())) {
+        final InputStream inputStream = imageSupplier.get();
+        if (inputStream == null) {
+            return Optional.empty();
+        }
+        try (final ImageInputStream imageInputStream = ImageIO.createImageInputStream(inputStream)) {
             final ImageReader imageReader = getImageReader(imageInputStream);
             if (imageReader != null) {
                 final R result = action.apply(imageReader);

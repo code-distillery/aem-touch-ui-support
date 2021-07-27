@@ -69,6 +69,7 @@ public class AssetReferenceInfoServlet extends SlingSafeMethodsServlet {
         final JsonObjectBuilder json = Json.createObjectBuilder()
                 .add("name", assetResource.getName())
                 .add("url", getUrl(resolver::map, assetResource))
+                .add("thumbnailUrl", getThummbnailUrl(resolver::map, assetResource))
                 .add("mimeType", mimeType);
 
         getDimensions(original).ifPresent(dimension -> {
@@ -117,6 +118,10 @@ public class AssetReferenceInfoServlet extends SlingSafeMethodsServlet {
 
     private String getUrl(Function<String, String> mapper, Resource rendition) {
         return mapper.apply(rendition.getPath()) + "?ch_ck=" + getLastModified(rendition);
+    }
+
+    private String getThummbnailUrl(Function<String, String> mapper, Resource rendition) {
+        return mapper.apply(rendition.getPath()) + ".thumb.319.319.png?ch_ck=" + getLastModified(rendition);
     }
 
     private static String getExtension(String filename) {
