@@ -34,3 +34,4 @@ checkbox-group.js
 distilledcode-foundation-toggleable-action.js
 fix-multifield-composite-disable.js
 distilledcode-tagfield-picker-auto-activate-single-namespace.js
+dialog-add-toggle-sidepanel-button.js
