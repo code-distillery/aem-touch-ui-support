@@ -20,7 +20,7 @@
     // defining sling:resourceType (if present) and delete all except the dialog's sling:resourceType
     // input field
     function fixSlingResourceTypeFields(e) {
-        $(e.target || document).find('coral-dialog-content').each(function(_, content) {
+        $(e.target || document).find('coral-dialog-content').each(function(_, content) {
             var $content = $(content);
             var $dialogRT = $content.children('[name="./sling:resourceType"]');
             if ($dialogRT.length > 0) {
