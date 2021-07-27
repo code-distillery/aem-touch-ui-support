@@ -39,7 +39,6 @@
     top: 0;
     height: 100%;
     width: 100%;
-    content: "";
     background: #2583db;
     border-radius: .25rem;
     transition: opacity .25s;
@@ -49,24 +48,6 @@
 .distilledcode-assetreference-preview:not(.is-disabled).is-active:after {
     opacity: .2;
     animation: pulse-dropzone 1.6s infinite;
-}
-
-@keyframes pulse-dropzone {
-    0% {
-        box-shadow: 0 0 0 1.5rem #fff,
-                    0 0 0 1.8rem rgba(37, 121, 219, .5),
-                    0 0 0 2.3rem #fff,
-                    0 0 0 2.5rem rgba(37, 121, 219, .2);
-    }
-    75% {
-        box-shadow: 0 0 0 0 #fff,
-                    0 0 0 0 rgba(37, 121, 219, 1),
-                    0 0 0 0 #fff,
-                    0 0 0 0 rgba(37, 121, 219, 1);
-    }
-    76% {
-        box-shadow: none;
-    }
 }
 
 .distilledcode-assetreference-preview:not(.is-disabled).is-active.is-dragging:after {

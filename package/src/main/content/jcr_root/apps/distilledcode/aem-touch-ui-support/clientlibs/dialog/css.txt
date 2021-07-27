@@ -13,6 +13,7 @@
 # limitations under the License.
 #base=css
 
+animate-drop-zones.css
 coral-Dialog-enhancements.css
 assetreferencefield.css
 checkbox-group.css
