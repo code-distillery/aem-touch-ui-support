@@ -58,6 +58,10 @@ public class AssetReferenceField extends GenericStringField {
                 "/apps/distilledcode/aem-touch-ui-support/content/pathfield/assets.html{+value}" +
                         "?_charset_=utf-8&root=%2fcontent%2fdam&filter=hierarchyNotFile&selectionCount=single"
         );
+        final String fileNameParameter = properties.get("fileNameParameter", String.class);
+        if (fileNameParameter != null) {
+            attributes.put("filenameparameter", fileNameParameter);
+        }
 
         setStoredTransformationValue("crop", attributes);
         setStoredTransformationValue("rotate", attributes);

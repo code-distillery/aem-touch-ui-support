@@ -23,7 +23,7 @@
     // x double check crop string format
     // - support ddGroups and/or mimeTypes and/or extensions
     // x gracefully handle absence of web rendition
-    // - enable/disable imageeditor automatically, depending on mimeType (i.e. image/*),
+    // x enable/disable imageeditor automatically, depending on mimeType (i.e. image/*),
     //   but allow overriding to disable it completely; also disable if web rendition is missing
     // very optional:
     // - optimize zoom factor for cropped/rotated images after applying the transformation
@@ -135,8 +135,9 @@
         }
     };
 
-    var HIDDEN_INPUT_NAMES = {
-        fileReference: 'fileReference',
+    var HIDDEN_INPUT_IDS_TO_NAMES = {
+        fileReference: function() { return this.name; },
+        fileName: function() { return this.fileNameParameter; },
         crop: 'imageCrop',
         map: 'imageMap',
         rotate: 'imageRotate'
@@ -501,6 +502,40 @@
                 },
                 sync: function() {
                     this._syncName();
+                },
+                alsoSync: ['fileNameParameter']
+            },
+            'fileNameParameter': {
+                'default': null,
+                attribute: 'filenameparameter',
+                reflectAttribute: true,
+                sync: function() {
+                    var paramName = this.fileNameParameter;
+                    if (!paramName) {
+                        this._removeHiddenInput('fileName');
+                    } else {
+                        if (!paramName.startsWith('./')) {
+                            var prefix = this._getPathPrefix();
+                            paramName = prefix + paramName;
+                        }
+                        this._createOrUpdateHiddenInput('fileName', paramName);
+                    }
+                }
+            },
+            'fileName': {
+                'default': '',
+                reflectAttribute: false,
+                sync: function () {
+                    var input = this._elements.inputs['fileName'];
+                    if (input) {
+                        var ref = this.value;
+                        if (ref) {
+                            var fileName = ref.substring(ref.lastIndexOf('/') + 1);
+                            input.value = fileName;
+                        } else {
+                            input.value = null;
+                        }
+                    }
                 }
             },
             'value': {
@@ -511,11 +546,14 @@
                 },
                 set: function(value) {
                     if (this._elements.inputs['fileReference'].value) {
-                        this._storeTransformations([]);
+                        this._resetTransformations();
                     }
                     this._elements.inputs['fileReference'].value = value;
                 },
-                alsoSync: ['name'], // needed for adding @Delete when value is empty
+                alsoSync: [
+                    'name',    // needed for adding @Delete when value is empty
+                    'fileName' // fileName is derived from fileReference
+                ],
                 sync: function() {
                     this._updatePreview();
                 }
@@ -613,33 +651,57 @@
             });
         },
 
-        _createHiddenInputs: function() {
+        _createOrUpdateHiddenInput: function(fieldId, fieldName) {
             this._elements.inputs = this._elements.inputs || {};
+            var input = this._elements.inputs[fieldId] = this._elements.inputs[fieldId] || document.createElement('input');
+            input.type = 'hidden';
+            input.name = fieldName;
+            this.appendChild(input);
 
-            var types = Object.keys(HIDDEN_INPUT_NAMES)
-            for (var i = 0; i < types.length; i++) {
-                var type = types[i];
-                var fieldId = HIDDEN_INPUT_NAMES[type];
-                this._elements.inputs[fieldId] = this._elements.inputs[fieldId] || document.createElement('input');
-                this._elements.inputs[fieldId].type = 'hidden';
-                var value = $(this).attr('data-transformation-' + type);
-                if (value) {
-                    this._elements.inputs[fieldId].value = value;
+            if (!fieldId.endsWith('@Delete')) {
+                this._createOrUpdateHiddenInput(fieldId + "@Delete", fieldName + "@Delete");
+            }
+
+            return input;
+        },
+
+        _removeHiddenInput: function(fieldId) {
+            this._elements.inputs = this._elements.inputs || {};
+            var input = this._elements.inputs[fieldId];
+            delete this._elements.inputs[fieldId];
+            if (input) {
+                input.remove();
+            }
+            if (!fieldId.endsWith('@Delete')) {
+                this._removeHiddenInput(fieldId + '@Delete');
+            }
+        },
+
+        _getHiddenFieldName(fieldId) {
+            var fieldName = HIDDEN_INPUT_IDS_TO_NAMES[fieldId];
+            if (typeof fieldName === 'function') {
+                return fieldName.apply(this);
+            }
+            return fieldName;
+        },
+
+        _createHiddenInputs: function() {
+            var fieldIds = Object.keys(HIDDEN_INPUT_IDS_TO_NAMES)
+            for (var i = 0; i < fieldIds.length; i++) {
+                var fieldId = fieldIds[i];
+                var fieldName = this._getHiddenFieldName(fieldId);
+                if (fieldName) {
+                    var input = this._createOrUpdateHiddenInput(fieldId, fieldName)
+                    var value = $(this).attr('data-transformation-' + fieldId);
+                    if (value) {
+                        input.value = value;
+                    }
                 }
-
-                this.appendChild(this._elements.inputs[fieldId]);
-
-                fieldId = fieldId + '@Delete';
-                this._elements.inputs[fieldId] = this._elements.inputs[fieldId] || document.createElement('input');
-                this._elements.inputs[fieldId].type = 'hidden';
-                this.appendChild(this._elements.inputs[fieldId]);
             }
 
             var self = this;
             ['jcr:lastModified', 'jcr:lastModifiedBy'].forEach(name => {
-                var input = self._elements.inputs[name] = self._elements.inputs[name] || document.createElement('input');
-                input.type = 'hidden';
-                input.name = name;
+                var input = self._createOrUpdateHiddenInput(name, name);
                 input.value = '';
                 input.disabled = true;
                 self.appendChild(input);
@@ -651,8 +713,9 @@
             this._elements.inputs['jcr:lastModifiedBy'].disabled = false;
         },
 
-        _setHiddenInput: function(name, value) {
-            this._elements.inputs[name].value = value;
+        _resetLastModified: function() {
+            this._elements.inputs['jcr:lastModified'].disabled = true;
+            this._elements.inputs['jcr:lastModifiedBy'].disabled = true;
         },
 
         _getTransformationHandlerNames: function() {
@@ -664,8 +727,7 @@
             var result = Object.create(null);
             for (var i = 0; i < handlers.length; i++) {
                 var type = handlers[i];
-                var fieldName = HIDDEN_INPUT_NAMES[type];
-                var value = this._elements.inputs[fieldName].value;
+                var value = this._elements.inputs[type].value;
                 if (value) {
                     var deserializedValue = this._deserializeTransformation(type, value, naturalWidth, naturalHeight);
                     if (deserializedValue) {
@@ -689,16 +751,26 @@
             var handlers = this._getTransformationHandlerNames();
             for (var i = 0; i < handlers.length; i++) {
                 var type = handlers[i];
-                this._setHiddenInput(HIDDEN_INPUT_NAMES[type], '');
+                var input = this._elements.inputs[type];
                 var transformation = processedTransformations[type];
                 if (transformation) {
                     var serializedData = TRANSFORMATION_HANDLERS[type].serialize(transformation, naturalWidth, naturalHeight);
-                    this._setHiddenInput(HIDDEN_INPUT_NAMES[type], serializedData);
+                    input.value = serializedData;
+                    this._setLastModified();
+                } else {
+                    input.value = '';
                 }
             }
-
-            this._setLastModified();
             this._updatePreview();
+        },
+
+        _resetTransformations: function() {
+            var handlers = this._getTransformationHandlerNames();
+            for (var i = 0; i < handlers.length; i++) {
+                var type = handlers[i];
+                this._elements.inputs[type].value = '';
+            }
+            this._resetLastModified();
         },
 
         _processTransformations(methodName, transformations, naturalWidth, naturalHeight) {
@@ -718,32 +790,24 @@
             return processedTransformations;
         },
 
+        _getPathPrefix: function() {
+            var name = this.name;
+            var pos = name.lastIndexOf('/');
+            return pos == -1 ? null : name.substring(0, pos + 1);
+        },
+
         _syncName: function() {
-            var pos = this.name.lastIndexOf('/');
-            var prefix, name;
-            if (pos == -1) {
-                prefix = '';
-                name = this.name;
-            } else {
-                prefix = this.name.substring(0, pos + 1);
-                name = this.name.substring(pos + 1);
-            }
-
+            var prefix = this._getPathPrefix();
+            var name = prefix ? this.name.substring(prefix.length) : this.name;
             var self = this;
-            var inputNames = Object.keys(this._elements.inputs);
-            inputNames.filter(inputName => !inputName.endsWith('@Delete')).forEach(inputName => {
-                var fieldId = HIDDEN_INPUT_NAMES[inputName] || inputName;
-                var fieldName = inputName === 'fileReference' ? name : fieldId;
-                self._elements.inputs[fieldId].name = prefix + fieldName;
-
-                if (!!HIDDEN_INPUT_NAMES[inputName]) {
-                    self._elements.inputs[fieldId + '@Delete'].name = prefix + fieldName + '@Delete';
-                }
+            var fieldIds = Object.keys(this._elements.inputs);
+            fieldIds.filter(fieldId => !fieldId.endsWith('@Delete')).forEach(fieldId => {
+                var fieldName = this._getHiddenFieldName(fieldId) || fieldId;
+                self._createOrUpdateHiddenInput(fieldId, fieldName.startsWith('./') ? fieldName : (prefix + fieldName));
             });
         },
 
         _updatePreview: function() {
-            var self = this;
             var img = this._elements.img;
             var plh = this._elements.placeholder;
             var edit = this._elements.edit;
@@ -751,39 +815,44 @@
             var assetPath = this.value;
             if (assetPath) {
 
+                var self = this;
                 $(img).one('load', e => {
                     var image = e.target;
-                    self._updateImageCss(self._loadTransformations(image.naturalWidth, image.naturalHeight));
+                    Coral.commons.nextFrame(_ => self._updateImageCss(self._loadTransformations(image.naturalWidth, image.naturalHeight)));
                 });
 
-                var self = this;
                 $.getJSON(`${assetPath}.assetreference.info.json`, function(info) {
                     self.info = info;
-                    var webRenditions = [...info.renditions].filter(rendition => rendition.name.startsWith('cq5dam.web.'));
-                    self.info.classicUiCropReference = webRenditions.find(r => r.isClassicUiCropReference);
-                    var webRendition = webRenditions
-                        // prefer 'cq5dam.web.1280.1280.' web rendition, but take any other as well
-                        // sorted by dimensions, largest dimensions first
-                        .sort(chainedSort(
-                            sortAlwaysFirst(r => r.name.startsWith('cq5dam.web.1280.1280.')),
-                            sortBy(r => r.width * -1 + r.height * -1)
-                        ))
-                        .shift();
-                    // use web rendition and fall back to original
-                    img.src = webRendition ? webRendition.url : info.url;
+                    var isImageAsset = info.mimeType.startsWith('image/');
+                    if (isImageAsset) {
+                        var webRenditions = [...info.renditions].filter(rendition => rendition.name.startsWith('cq5dam.web.'));
+                        info.classicUiCropReference = webRenditions.find(r => r.isClassicUiCropReference);
+                        var webRendition = webRenditions
+                            // prefer 'cq5dam.web.1280.1280.' web rendition, but take any other as well
+                            // sorted by dimensions, largest dimensions first
+                            .sort(chainedSort(
+                                sortAlwaysFirst(r => r.name.startsWith('cq5dam.web.1280.1280.')),
+                                sortBy(r => r.width * -1 + r.height * -1)
+                            ))
+                            .shift();
+                        // use web rendition and fall back to original
+                        img.src = webRendition ? webRendition.url : info.url;
+                    } else {
+                        img.src = info.thumbnailUrl;
+                    }
                     img.alt = assetPath;
                     img.title = assetPath;
                     img.hidden = false;
                     plh.hidden = true;
-                    edit.hidden = !self.info.mimeType.startsWith('image/');
+                    edit.hidden = !isImageAsset;
                     clear.hidden = false;
                 });
             } else {
-                img.src = null;
-                img.alt = null;
-                img.title = null;
-                img.hidden = true;
+                img.removeAttribute('src');
+                img.removeAttribute('alt');
+                img.removeAttribute('title');
                 img.removeAttribute('style');
+                img.hidden = true;
                 plh.hidden = false;
                 edit.hidden = true;
                 clear.hidden = true;
@@ -807,14 +876,14 @@
                     h: img.naturalHeight
                 };
 
-                // workaround: if panel is hidden, the availableSize gets a hight of 0
-                if (img.parentElement.offsetWidth === 0) {
-                    $containingPanel.addClass('is-selected distilledcode-workaround');
-                }
-                var availableSize = {
-                    w: img.parentElement.offsetWidth,
-                    h: Math.max(parseInt(getComputedStyle(img).getPropertyValue('max-height').replace('px', ''), 10), 256)
-                };
+            // workaround: if panel is hidden, the availableSize gets a hight of 0
+            if (img.parentElement.offsetWidth === 0) {
+                $containingPanel.addClass('is-selected distilledcode-workaround');
+            }
+            var availableSize = {
+                w: img.parentElement.offsetWidth,
+                h: Math.max(parseInt(getComputedStyle(img).getPropertyValue('max-height').replace('px', ''), 10), 256)
+            };
 
             if (crop) {
                 $.extend(crop, {
@@ -880,17 +949,7 @@
             var self = this;
             var canvas = $('body').children('.distilledcode-imageeditor-canvas');
             if (canvas.length === 0) {
-                canvas = $('<div>', {
-                    class: 'distilledcode-imageeditor-canvas',
-                    css: { // TODO - move to CSS style sheet
-                        height: '100%',
-                        width: '100%',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        zIndex: 10500
-                    }
-                });
+                canvas = $('<div>', { class: 'distilledcode-imageeditor-canvas' });
                 $('body').append(canvas);
             }
             canvas.empty();
