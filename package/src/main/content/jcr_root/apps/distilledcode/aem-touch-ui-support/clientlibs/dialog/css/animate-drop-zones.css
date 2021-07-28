@@ -31,11 +31,6 @@
     }
 }
 
-.cq-Overlay-subdroptarget {
-    min-width: 6rem;
-    min-height: 3rem;
-}
-
 .cq-Overlay-subdroptarget:after {
     content: "";
     position: absolute;
