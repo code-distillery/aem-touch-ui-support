@@ -2,6 +2,7 @@
 *.ipr
 *.iws
 .classpath
+.mvn
 .project
 .settings
 target
