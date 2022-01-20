@@ -16,5 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */-->
-<sly data-sly-use.field="net.distilledcode.aem.ui.touch.support.api.ui.granite.ColorField"
-     data-sly-include="${field.tagName}.html"></sly>
+<coral-select data-sly-use.field="net.distilledcode.aem.ui.touch.support.api.ui.granite.ColorField"
+     name="${field.name}"
+     data-sly-attribute="${field.attributes}">
+    <coral-select-item data-sly-repeat.colorDef="${field.colorDefinitions}"
+                       value="${colorDef.colorValue}">
+        <div class="color-swatch" style="--swatch-color: ${colorDef.colorValue @ context = 'styleToken'}">&nbsp;</div>
+        ${colorDef.label} (${colorDef.colorValue})
+    </coral-select-item>
+</coral-select>

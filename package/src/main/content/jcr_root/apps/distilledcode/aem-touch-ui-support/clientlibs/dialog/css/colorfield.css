@@ -13,7 +13,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-@Version("0.5.0")
-package net.distilledcode.aem.ui.touch.support.api.ui.granite;
-
-import org.osgi.annotation.versioning.Version;
+coral-select.distilledcode-colorfield .color-swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid #323232;
+    border-radius: .25rem;
+    margin-right: .25rem;
+    background-color: var(--swatch-color);
+}
