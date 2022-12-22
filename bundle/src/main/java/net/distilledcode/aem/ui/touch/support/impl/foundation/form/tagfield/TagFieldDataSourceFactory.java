@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -47,6 +48,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -93,77 +95,75 @@ public class TagFieldDataSourceFactory extends DataSourceFactory {
 
             Collection<String> namespaces = getAvailableNamespacesForPath(request, path, config);
 
+            final Stream<Resource> resourceStream;
             if (isChildTags) {
-                return computeChildTagResources(request, dsProperties, ex, namespaces);
+                resourceStream = computeChildTagResources(request, dsProperties, ex, namespaces);
             } else {
-                return computeTagSearchResources(request, dsProperties, ex, namespaces);
+                resourceStream = computeTagSearchResources(request, dsProperties, ex, namespaces);
             }
+
+            final int offset = ex.get(dsProperties.get("offset", "0"), int.class);
+            final int limit = ex.get(dsProperties.get("limit", "20"), int.class);
+
+            return resourceStream
+                    .sorted(Comparator.comparing(Resource::getName))
+                    .skip(offset)
+                    .limit(limit)
+                    ::iterator;
         }
         
         throw new IllegalStateException("Called TagsDataSourceFactory for invalid resource type: " +
                 dsResource.getResourceType());
     }
 
-    private Iterable<Resource> computeChildTagResources(SlingHttpServletRequest request, ValueMap dsProperties, ExpressionHelper ex, Collection<String> namespaces) {
-
-        final String tagId = ex.getString(dsProperties.get("tagId", String.class));
-        if (StringUtils.isBlank(tagId)) {
-            return null;
-        }
-
+    @NotNull
+    private static Stream<Resource> computeChildTagResources(SlingHttpServletRequest request, ValueMap dsProperties, ExpressionHelper ex, Collection<String> namespaces) {
         return Optional.ofNullable(request.getResourceResolver().adaptTo(TagManager.class))
-                .map(tm -> tm.resolve(tagId))
+                .flatMap(tagManager -> Optional.ofNullable(dsProperties.get("tagId", String.class))
+                        .map(ex::getString)
+                        .map(tagManager::resolve))
                 .map(tag -> computeChildTagResources(tag, namespaces))
-                .orElse(null);
+                .orElseGet(Stream::empty);
     }
 
-    @Nullable
-    private Iterable<Resource> computeChildTagResources(Tag tag, Collection<String> namespaces) {
+    @NotNull
+    private static Stream<Resource> computeChildTagResources(Tag tag, Collection<String> namespaces) {
         // TODO: take into account that /etc/tags moves to /content/cq:tags in AEM 6.5
         if (Objects.equals(tag.getPath(), "/etc/tags")) {
             return Optional.ofNullable(tag.adaptTo(Resource.class))
-                    .<Iterable<Resource>>map(tagResource -> namespaces.stream()
+                    .map(tagResource -> namespaces.stream()
                             .map(tagResource::getChild)
                             .filter(Objects::nonNull)
                             .filter(child -> child.adaptTo(Tag.class) != null)
-                            .sorted(Comparator.comparing(Resource::getName))
-                            ::iterator
                     )
-                    .orElse(null);
+                    .orElseGet(Stream::empty);
         }
 
         Tag namespace = tag.isNamespace() ? tag : tag.getNamespace();
         if (namespaces.contains(namespace.getName())) {
             return Optional.<Iterable<Tag>>of(tag::listChildren)
-                    .<Iterable<Resource>>map(childTags -> StreamSupport.stream(childTags.spliterator(), false)
+                    .map(childTags -> StreamSupport.stream(childTags.spliterator(), false)
                             .map(childTag -> childTag.adaptTo(Resource.class))
                             .filter(Objects::nonNull)
-                            ::iterator
                     )
-                    .orElse(null);
+                    .orElseGet(Stream::empty);
         }
 
-        return null;
+        return Stream.empty();
     }
 
-    private Iterable<Resource> computeTagSearchResources(SlingHttpServletRequest request, ValueMap dsProperties, ExpressionHelper ex, Collection<String> namespaces) {
-        final String titleQuery = ex.getString(dsProperties.get("query", String.class));
-
-        if (StringUtils.isBlank(titleQuery)) {
-            return null;
-        }
-
-        final int offset = ex.get(dsProperties.get("offset", "0"), int.class);
-        final int limit = ex.get(dsProperties.get("limit", "20"), int.class);
-
-
-        final String query = createQuery(request.getLocale(), titleQuery, namespaces);
-        LOG.debug("Executing xpath query '{}'", query);
-        Iterable<Resource> result = () -> request.getResourceResolver().findResources(query, "xpath");
-        return () -> StreamSupport.stream(result.spliterator(), false)
-                .skip(offset)
-                .limit(limit)
-                .iterator();
+    @NotNull
+    private static Stream<Resource> computeTagSearchResources(SlingHttpServletRequest request, ValueMap dsProperties, ExpressionHelper ex, Collection<String> namespaces) {
+        return Optional.ofNullable(dsProperties.get("query", String.class))
+                .map(ex::getString)
+                .filter(((Predicate<String>)StringUtils::isBlank).negate())
+                .map(titleQuery -> createQuery(request.getLocale(), titleQuery, namespaces))
+                .<Iterable<Resource>>map(query -> () -> {
+                    LOG.debug("Executing xpath query '{}'", query);
+                    return request.getResourceResolver().findResources(query, "xpath");
+                })
+                .map(resources -> StreamSupport.stream(resources.spliterator(), false))
+                .orElseGet(Stream::empty);
     }
 
     // Namespaces are returned sorted in natural order (via TreeSet)
